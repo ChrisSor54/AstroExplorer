@@ -1,0 +1,5 @@
+res://scenes/player.tscn
+res://scenes/player.gd
+res://scenes/main.tscn
+res://scenes/solar_system.gd
+res://scenes/gravitational_body.gd

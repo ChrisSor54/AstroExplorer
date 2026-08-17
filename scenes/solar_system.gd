@@ -1,30 +1,44 @@
 extends Node3D
 class_name SolarSystem
 
-@onready var bodies = $Bodies
-@onready var player = $Player
+@export var player: Player
+var bodies: Array[GBody]
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	pass # Replace with function body.
+	for node in get_children():
+		if node is GBody:
+			bodies.append(node)
+			node.init()
+	if player:
+		player.init()
+	#$Planet.set_orbit($Star, 700)
+	#player.teleport_to_body($Planet)
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
-	update_gravity(delta)
+	update_gravity()
+	#if player:
+		#update_relative_velocities(player.linear_velocity)
+		#update_relative_positions(player.global_position)
 
-func update_gravity(delta: float) -> void:
-	player.parent_body = null
-	player.strongest_gravitational_force_squared = 0.0
-	for body1 in bodies.get_children():
-		if body1 is not GBody or body1.process_mode == PROCESS_MODE_DISABLED: continue
-		for body2 in bodies.get_children():
-			if body2 is not GBody or body2.process_mode == PROCESS_MODE_DISABLED: continue
-			if body1 == body2: continue
-			body1.acceleration += body2.get_gravity_vector_from(body1.global_position)*delta
-		var player_gravity_vector = body1.get_gravity_vector_from(player.global_position)
-		player.acceleration += player_gravity_vector*delta
-		var gravity_force_squared = player_gravity_vector.length_squared()
-		if player.parent_body == null or gravity_force_squared > player.strongest_gravitational_force_squared:
-			player.parent_body = body1
-			player.strongest_gravitational_force_squared = gravity_force_squared
+func update_gravity() -> void:
+	for body in bodies:
+		if body.process_mode == PROCESS_MODE_DISABLED: continue
+		body.update_gravity()
+		
+	#if player:
+		#player.update_gravity(delta)
+
+func update_relative_positions(origin: Vector3):
+	for body in bodies:
+		body.global_position -= origin
+	if player:
+		player.global_position -= origin
+
+func update_relative_velocities(reference_velocity: Vector3):
+	for body in bodies:
+		body.constant_linear_velocity -= reference_velocity
+	if player:
+		player.linear_velocity -= reference_velocity

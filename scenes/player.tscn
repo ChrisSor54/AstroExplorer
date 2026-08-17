@@ -2,21 +2,26 @@
 
 [ext_resource type="Script" uid="uid://djlkaiwl6b81v" path="res://scenes/player.gd" id="1_3vyb7"]
 
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_jyhfs"]
+
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_lfxu0"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_lfxu0"]
 
-[node name="Player" type="RigidBody3D" unique_id=1916186712 node_paths=PackedStringArray("grounded_raycast", "camera", "camera_pivot")]
+[node name="Player" type="RigidBody3D" unique_id=1916186712 node_paths=PackedStringArray("grounded_raycast", "collision_shape", "camera", "camera_pivot")]
+physics_material_override = SubResource("PhysicsMaterial_jyhfs")
 gravity_scale = 0.0
 script = ExtResource("1_3vyb7")
 grounded_raycast = NodePath("GroundedRayCast")
+collision_shape = NodePath("CollisionShape")
 camera = NodePath("CameraPivot/Camera3D")
 camera_pivot = NodePath("CameraPivot")
+move_speed = 5.0
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=296623505]
 mesh = SubResource("CapsuleMesh_lfxu0")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1035658968]
+[node name="CollisionShape" type="CollisionShape3D" parent="." unique_id=1035658968]
 shape = SubResource("CapsuleShape3D_lfxu0")
 
 [node name="CameraPivot" type="Node3D" parent="." unique_id=72778139]
@@ -26,10 +31,7 @@ transform = Transform3D(1, 0, 0, 0, 0.99999994, 0, 0, 0, 0.99999994, 0, 0.494298
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.5)
 current = true
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="CameraPivot/Camera3D" unique_id=1741388584]
-
 [node name="SpotLight3D" type="SpotLight3D" parent="CameraPivot" unique_id=737936122]
-process_mode = 4
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.37250507, -0.46502382, 5.9604645e-08)
 spot_angle = 16.45044
 
