@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://dswp1l3t7voox"]
+
+[ext_resource type="Script" uid="uid://djlkaiwl6b81v" path="res://scenes/player.gd" id="1_3vyb7"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_lfxu0"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_lfxu0"]
+
+[node name="Player" type="RigidBody3D" unique_id=1916186712 node_paths=PackedStringArray("grounded_raycast", "camera", "camera_pivot")]
+gravity_scale = 0.0
+script = ExtResource("1_3vyb7")
+grounded_raycast = NodePath("GroundedRayCast")
+camera = NodePath("CameraPivot/Camera3D")
+camera_pivot = NodePath("CameraPivot")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=296623505]
+mesh = SubResource("CapsuleMesh_lfxu0")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1035658968]
+shape = SubResource("CapsuleShape3D_lfxu0")
+
+[node name="CameraPivot" type="Node3D" parent="." unique_id=72778139]
+transform = Transform3D(1, 0, 0, 0, 0.99999994, 0, 0, 0, 0.99999994, 0, 0.49429822, -0.5671428)
+
+[node name="Camera3D" type="Camera3D" parent="CameraPivot" unique_id=712293505]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.5)
+current = true
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="CameraPivot/Camera3D" unique_id=1741388584]
+
+[node name="SpotLight3D" type="SpotLight3D" parent="CameraPivot" unique_id=737936122]
+process_mode = 4
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.37250507, -0.46502382, 5.9604645e-08)
+spot_angle = 16.45044
+
+[node name="GroundedRayCast" type="RayCast3D" parent="." unique_id=345704609]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
+target_position = Vector3(0, -0.5, 0)
+hit_from_inside = true

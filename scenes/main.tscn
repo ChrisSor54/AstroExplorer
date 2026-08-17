@@ -1,0 +1,75 @@
+[gd_scene format=3 uid="uid://d2522tb5vji20"]
+
+[ext_resource type="Script" uid="uid://d1g0rdiai0hhb" path="res://scenes/solar_system.gd" id="1_0wfyh"]
+[ext_resource type="Script" uid="uid://cnfpoynb60n1f" path="res://scenes/gravitational_body.gd" id="1_o5qli"]
+[ext_resource type="PackedScene" uid="uid://dswp1l3t7voox" path="res://scenes/player.tscn" id="2_sugp2"]
+
+[sub_resource type="Environment" id="Environment_lfxu0"]
+background_mode = 2
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_lfxu0"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_lfxu0"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0wfyh"]
+albedo_color = Color(1, 1, 0, 1)
+emission_enabled = true
+emission = Color(1, 1, 0, 1)
+emission_energy_multiplier = 5.0
+grow_amount = -5.966
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_hjb8m"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_hjb8m"]
+
+[node name="SolarSystem" type="Node3D" unique_id=323298835]
+script = ExtResource("1_0wfyh")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1475060691]
+environment = SubResource("Environment_lfxu0")
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1733701076]
+process_mode = 4
+transform = Transform3D(-0.017472137, 0.99765426, -0.06618744, 0, 0.066197544, 0.99780655, 0.99984735, 0.017433813, -0.0011566125, -14.60163, 210.91449, 50.82685)
+
+[node name="Player" parent="." unique_id=1348657433 instance=ExtResource("2_sugp2")]
+transform = Transform3D(0.99999994, 0, 2.219167e-09, 0, 1, 0, 3.5652192e-10, 0, 0.9999998, -9.536743e-07, 18.559616, 604.1943)
+linear_velocity = Vector3(13, 0, 0)
+
+[node name="Bodies" type="Node3D" parent="." unique_id=1061304327]
+
+[node name="Star" type="StaticBody3D" parent="Bodies" unique_id=1533250509]
+transform = Transform3D(100, 0, 0, 0, 100, 0, 0, 0, 100, 0, 0, 0)
+script = ExtResource("1_o5qli")
+mass = 100000.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bodies/Star" unique_id=2125179676]
+shape = SubResource("SphereShape3D_lfxu0")
+metadata/_edit_group_ = true
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Bodies/Star" unique_id=1424727798]
+mesh = SubResource("SphereMesh_lfxu0")
+surface_material_override/0 = SubResource("StandardMaterial3D_0wfyh")
+metadata/_edit_group_ = true
+
+[node name="OmniLight3D" type="OmniLight3D" parent="Bodies/Star" unique_id=1069797711]
+light_energy = 10000.0
+distance_fade_length = 3402.0
+omni_range = 1000.0
+omni_attenuation = 2.0
+
+[node name="Planet" type="StaticBody3D" parent="Bodies" unique_id=1337553086]
+transform = Transform3D(19.999998, 0, 0, 0, 19.999998, 0, 0, 0, 19.999998, 0, 0, 600)
+constant_linear_velocity = Vector3(13, 0, 0)
+script = ExtResource("1_o5qli")
+mass = 1000.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bodies/Planet" unique_id=72875803]
+transform = Transform3D(1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0)
+shape = SubResource("SphereShape3D_hjb8m")
+metadata/_edit_group_ = true
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Bodies/Planet" unique_id=513786697]
+transform = Transform3D(1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0)
+mesh = SubResource("SphereMesh_hjb8m")
+metadata/_edit_group_ = true
