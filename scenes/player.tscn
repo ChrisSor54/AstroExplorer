@@ -2,21 +2,17 @@
 
 [ext_resource type="Script" uid="uid://djlkaiwl6b81v" path="res://scenes/player.gd" id="1_3vyb7"]
 
-[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_jyhfs"]
-
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_lfxu0"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_lfxu0"]
 
-[node name="Player" type="RigidBody3D" unique_id=1916186712 node_paths=PackedStringArray("grounded_raycast", "collision_shape", "camera", "camera_pivot")]
-physics_material_override = SubResource("PhysicsMaterial_jyhfs")
+[node name="Player" type="RigidBody3D" unique_id=1916186712 node_paths=PackedStringArray("ground_raycast", "camera_pivot", "camera")]
+mass = 7.0
 gravity_scale = 0.0
 script = ExtResource("1_3vyb7")
-grounded_raycast = NodePath("GroundedRayCast")
-collision_shape = NodePath("CollisionShape")
-camera = NodePath("CameraPivot/Camera3D")
+ground_raycast = NodePath("GroundedRayCast")
 camera_pivot = NodePath("CameraPivot")
-move_speed = 5.0
+camera = NodePath("CameraPivot/Camera3D")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=296623505]
 mesh = SubResource("CapsuleMesh_lfxu0")
@@ -28,7 +24,6 @@ shape = SubResource("CapsuleShape3D_lfxu0")
 transform = Transform3D(1, 0, 0, 0, 0.99999994, 0, 0, 0, 0.99999994, 0, 0.49429822, -0.5671428)
 
 [node name="Camera3D" type="Camera3D" parent="CameraPivot" unique_id=712293505]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.5)
 current = true
 
 [node name="SpotLight3D" type="SpotLight3D" parent="CameraPivot" unique_id=737936122]
