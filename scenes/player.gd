@@ -25,21 +25,28 @@ var _ground: GravBody
 var parent_body: GravBody
 var parent_gravity: Vector3 = Vector3.ZERO
 
+
 var _is_reorienting: bool = false
-var _mouselook_enabled = true
+var _mouselook_enabled = true:
+	set(val):
+		_mouselook_enabled = val
+		if _mouselook_enabled:
+			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+		else:
+			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+		
 var _thirdperson_enabled: bool = false
 var _mouse_sensitivity: float = 0.003
 var _mouse_delta: Vector2 = Vector2.ZERO
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	_mouselook_enabled = true
 	pass # Replace with function body.
 
 func _input(event: InputEvent) -> void:
 	if Input.is_action_just_pressed("toggle_mouselook"):
 		_mouselook_enabled = false
-		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	if Input.is_action_just_pressed("toggle_firstperson"):
 		_thirdperson_enabled = !_thirdperson_enabled
 		if _thirdperson_enabled:
@@ -49,7 +56,6 @@ func _input(event: InputEvent) -> void:
 		
 	if event is InputEventMouseButton and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE:
 		_mouselook_enabled = true
-		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	if event is InputEventMouseMotion and _mouselook_enabled:
 		_mouse_delta = event.relative
 

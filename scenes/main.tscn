@@ -58,8 +58,6 @@ collision_shape = NodePath("CollisionShape3D")
 mesh = NodePath("MeshInstance3D")
 radius = 500.0
 surface_gravity = 20.0
-orbit_inclination = null
-angular_velocity = null
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Star" unique_id=2125179676]
 shape = SubResource("SphereShape3D_lfxu0")
@@ -84,7 +82,6 @@ radius = 100.0
 surface_gravity = 9.8
 parent_body = NodePath("../Star")
 orbit_distance = 2000.0
-orbit_inclination = null
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Planet" unique_id=72875803]
 shape = SubResource("SphereShape3D_hjb8m")

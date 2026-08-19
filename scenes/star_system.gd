@@ -33,9 +33,10 @@ func _physics_process(delta: float) -> void:
 			body1.apply_force(grav_vector)
 		if player:
 			var grav_vector = body1.get_gravity_vector_from(player.global_position, player.mass)
-			print(body1.name, ": ", grav_vector.length()/player.mass)
-			if grav_vector.length_squared() > player.parent_gravity.length_squared():
+			var parental_grav = body1.get_gravity_vector_from(player.global_position, player.mass, 3)
+			if parental_grav.length_squared() > player.parent_gravity.length_squared():
 				player.parent_body = body1
 				player.parent_gravity = grav_vector
 				#print((grav_vector/player.mass).length())
 			player.apply_central_force(grav_vector)
+	

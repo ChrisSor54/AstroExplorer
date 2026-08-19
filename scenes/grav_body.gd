@@ -70,15 +70,19 @@ func _physics_process(delta: float) -> void:
 	var new_basis = Basis.from_euler(global_rotation + constant_angular_velocity*delta)
 	global_transform = Transform3D(new_basis, new_position)
 
-func get_gravity_vector_between(target_body: GravBody) -> Vector3:
-	return get_gravity_vector_from(target_body.global_position, target_body.mass)
+func get_gravity_vector_between(target_body: GravBody, distance_power: int = 2) -> Vector3:
+	return get_gravity_vector_from(target_body.global_position, target_body.mass, distance_power)
 
-func get_gravity_vector_from(target_position: Vector3, target_mass: float = 1.0) -> Vector3:
+func get_gravity_vector_from(target_position: Vector3, target_mass: float = 1.0, distance_power: int = 2) -> Vector3:
 	var normal := global_position - target_position
-	var sqr_distance = normal.length_squared()
-	if abs(sqr_distance) <= 0.001:
+	var distance_factor
+	if distance_power == 2:
+		distance_factor = normal.length_squared()
+	else:
+		distance_factor = pow(normal.length(), abs(distance_power))
+	if abs(distance_factor) <= 0.001:
 		return Vector3.ZERO
-	return normal.normalized()*(G*mass*target_mass/sqr_distance)
+	return normal.normalized()*(G*mass*target_mass/distance_factor)
 
 func apply_force(force_vector: Vector3):
 	acceleration += force_vector/mass
@@ -92,10 +96,10 @@ func set_orbit(orbit_parent: GravBody, distance: float, inclination: float = 0.0
 		return
 	var sync_setting = sync_to_physics
 	sync_to_physics = false
-	#var forward_vector = orbit_parent.global_transform.basis.z.normalized()
-	#var left_vector = orbit_parent.global_transform.basis.x.normalized()
+	var forward_vector = orbit_parent.global_transform.basis.z.normalized()
+	var left_vector = orbit_parent.global_transform.basis.x.normalized()
 	var M := orbit_parent.mass
 	var orbital_speed = sqrt((G*M)/distance)
-	global_position = orbit_parent.global_position + -Vector3.FORWARD*distance
-	linear_velocity = orbit_parent.linear_velocity + (-Vector3.LEFT*orbital_speed).rotated(Vector3.FORWARD, inclination*(PI/2))
+	global_position = orbit_parent.global_position + forward_vector*distance
+	linear_velocity = orbit_parent.linear_velocity + (left_vector*orbital_speed).rotated(Vector3.FORWARD, inclination*(PI/2))
 	sync_to_physics = sync_setting
