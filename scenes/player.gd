@@ -9,14 +9,15 @@ const ZERO_G_THRESHOLD: float = 2.0
 @export_group("Movement")
 @export var walk_speed: float = 15.0
 @export var walk_acceleration: float = 1.0
-@export var walk_deceleration: float = 1.0
 @export var thrust_speed: float = 10.0
 @export_group("")
 
 @export_group("Nodes")
+@export var collision_shape: CollisionShape3D
 @export var ground_raycast: RayCast3D
 @export var camera_pivot: Node3D
 @export var camera: Camera3D
+@export var grounded_counter_spin: Marker3D
 @export_group("")
 
 var is_grounded: bool = false
@@ -24,8 +25,10 @@ var in_zero_G: bool = false
 var _ground: GravBody
 var parent_body: GravBody
 var parent_gravity: Vector3 = Vector3.ZERO
+var radius: float = 1.0
 
-
+#var _surface_position: Vector3 = Vector3.ZERO
+#var _is_stuck_to_surface: bool = false
 var _is_reorienting: bool = false
 var _mouselook_enabled = true:
 	set(val):
@@ -39,9 +42,13 @@ var _thirdperson_enabled: bool = false
 var _mouse_sensitivity: float = 0.003
 var _mouse_delta: Vector2 = Vector2.ZERO
 
+
+signal update_linear_velocity
+
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	_mouselook_enabled = true
+	radius = collision_shape.shape.height/2
 	pass # Replace with function body.
 
 func _input(event: InputEvent) -> void:
@@ -71,23 +78,24 @@ func _physics_process(delta: float) -> void:
 			_is_reorienting = true
 		in_zero_G = false
 	else:
-		print("zero G")
+		#print("zero G")
 		if !in_zero_G:
 			_is_reorienting = true
 		in_zero_G = true
 		
 	if ground_raycast.is_colliding():
-		if !is_grounded:
-			_is_reorienting = true
+		#if !is_grounded:
+			#_is_reorienting = true
 		is_grounded = true
 	else:
-		if is_grounded:
-			_is_reorienting = true
+		#if is_grounded:
+			#_is_reorienting = true
 		is_grounded = false
 	
 	_process_look_input(delta)
 	_process_orientation(delta)
 	_process_movement_input(delta)
+	update_linear_velocity.emit()
 
 
 
@@ -95,41 +103,45 @@ func _process_movement_input(delta: float) -> void:
 	var forward_vector = -global_transform.basis.z.normalized()
 	var left_vector = -global_transform.basis.x.normalized()
 	var up_vector = global_transform.basis.y.normalized()
-	angular_damp = 10.0
+	#angular_damp = 10.0
 	
 	var input_vector = Vector3.ZERO
-	
 	input_vector += Input.get_axis("backward", "forward") * forward_vector
 	input_vector += Input.get_axis("right", "left") * left_vector
-	if is_grounded:
-		if Input.is_action_just_pressed("jump"):
-			var impulse_vector = JUMP_IMPULSE*up_vector
-			apply_central_impulse(impulse_vector)
-	else:
+	if !is_grounded:
 		input_vector += Input.get_axis("fly_down", "fly_up") * up_vector
-	#if is_grounded:
-		#var colliding_body = grounded_raycast.get_collider()
-		#if colliding_body is GBody:
-			#angular_velocity = colliding_body.constant_angular_velocity.project(up_vector)
-			#angular_damp = 0
+		print(input_vector)
 
 	var move_vector = Vector3.ZERO
 	if is_grounded:
-		var relative_velocity = linear_velocity - _ground.linear_velocity
+		angular_velocity += _ground.angular_velocity.project(up_vector)
+		#r = r.normalized()*(r.length() + radius)
+		var surface_velocity = _ground.linear_velocity + _ground.get_surface_velocity_from(grounded_counter_spin.global_position)
+		var relative_velocity = linear_velocity - surface_velocity
 		var forward_speed = relative_velocity.dot(input_vector)
 		var target_force = max(walk_speed-forward_speed, 0)
 		if input_vector != Vector3.ZERO:
 			input_vector = input_vector.normalized()
 			move_vector = input_vector*(target_force*walk_acceleration*mass)
 		else:
-			if relative_velocity.length_squared() != 0:
-				var deceleration_speed = max(walk_deceleration, -relative_velocity.length())
-				move_vector = -relative_velocity.normalized()*deceleration_speed
+			if relative_velocity.length_squared() <= 0.2:
+				move_vector = Vector3.ZERO
+				linear_velocity = surface_velocity #+ _ground.angular_velocity*radius
+				relative_velocity = linear_velocity - surface_velocity
+			else:
+				var deceleration_speed = max(walk_acceleration, -relative_velocity.length())
+				#move_vector = (-relative_velocity)
+				move_vector = (-relative_velocity).normalized()*deceleration_speed*mass
+		if Input.is_action_just_pressed("jump"):
+			var impulse_vector = JUMP_IMPULSE*up_vector
+			linear_velocity += impulse_vector/mass
+		if relative_velocity.length() != 0: print(relative_velocity.length())
 	else:
 		if input_vector != Vector3.ZERO:
 			input_vector = input_vector.normalized()
 			move_vector = input_vector.normalized()*thrust_speed
-	apply_central_force(move_vector)
+	if move_vector != Vector3.ZERO:
+		apply_central_force(move_vector)
 
 
 func _process_look_input(delta: float) -> void:
@@ -178,19 +190,8 @@ func _process_orientation(delta: float) -> void:
 		camera_pivot.rotation.x = new_pitch
 		var rotation_delta = Quaternion(left_vector, pitch_to_transfer)
 		global_transform.basis = Basis(rotation_delta * global_transform.basis.get_rotation_quaternion())
-			
-
-
-## Force buffer stuff
-#func accelerate(force_vector: Vector3) -> void:
-	#acceleration += force_vector/mass
-#
-#func apply_acceleration() -> void:
-	#apply_central_force(acceleration)
-	#acceleration = Vector3.ZERO
 
 func teleport_to_body(target_body: GravBody) -> void:
-	var body_up_vector = target_body.transform.basis.y.normalized()
-	global_position = target_body.global_position + body_up_vector*(target_body.radius)
-	linear_velocity = target_body.linear_velocity
-	print(target_body.linear_velocity)
+	var body_forward_vector = -target_body.transform.basis.z.normalized()
+	global_position = target_body.global_position + body_forward_vector*(target_body.radius)
+	#linear_velocity = target_body.linear_velocity + target_body.get_surface_velocity_from(global_position)
