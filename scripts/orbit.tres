@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="Orbit" format=3 uid="uid://bsw6acohimu8w"]
+
+[ext_resource type="Script" uid="uid://bh6qopnt2yrat" path="res://scripts/orbit.gd" id="1_anukw"]
+
+[resource]
+script = ExtResource("1_anukw")

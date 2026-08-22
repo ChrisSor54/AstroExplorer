@@ -4,7 +4,10 @@
 [ext_resource type="Texture2D" uid="uid://bgp54i5vtb3ai" path="res://assets/ESO_-_Milky_Way.jpg" id="2_jyhfs"]
 [ext_resource type="Script" uid="uid://dqg7g83evxrvs" path="res://scenes/grav_body.gd" id="3_tbgi4"]
 [ext_resource type="PackedScene" uid="uid://dswp1l3t7voox" path="res://scenes/player.tscn" id="4_jyhfs"]
+[ext_resource type="Script" uid="uid://bh6qopnt2yrat" path="res://scripts/orbit.gd" id="4_o6xl0"]
 [ext_resource type="Texture2D" uid="uid://18krst7ow0qk" path="res://assets/moon_4k.jpg" id="4_tbgi4"]
+[ext_resource type="Texture2D" uid="uid://b1imeyff26yck" path="res://assets/earth_2k.jpg" id="4_tefeu"]
+[ext_resource type="Material" uid="uid://ch4ew72pjalnf" path="res://assets/materials/axis_material.tres" id="6_tipki"]
 
 [sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_3vyb7"]
 panorama = ExtResource("2_jyhfs")
@@ -16,27 +19,70 @@ sky_material = SubResource("PanoramaSkyMaterial_3vyb7")
 [sub_resource type="Environment" id="Environment_lfxu0"]
 background_mode = 2
 sky = SubResource("Sky_jyhfs")
+glow_enabled = true
+
+[sub_resource type="Resource" id="Resource_85g3d"]
+script = ExtResource("4_o6xl0")
+argument_of_apoapsis = null
+argument_of_periapsis = null
+true_anomaly = 0.0
+metadata/_custom_type_script = "uid://bh6qopnt2yrat"
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_lfxu0"]
-radius = 500.0
+radius = 1000.0
 
 [sub_resource type="SphereMesh" id="SphereMesh_lfxu0"]
-radius = 500.0
-height = 1000.0
+radius = 1000.0
+height = 2000.0
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0wfyh"]
+disable_ambient_light = true
 albedo_color = Color(1, 1, 0, 1)
 emission_enabled = true
 emission = Color(1, 1, 0, 1)
 emission_energy_multiplier = 5.0
 grow_amount = -5.966
 
-[sub_resource type="SphereShape3D" id="SphereShape3D_hjb8m"]
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_g2els"]
+rough = true
+absorbent = true
+
+[sub_resource type="Resource" id="Resource_7x8h1"]
+script = ExtResource("4_o6xl0")
+parent_body = NodePath("../Star")
+apoapsis = 8000.0
+metadata/_custom_type_script = "uid://bh6qopnt2yrat"
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_tefeu"]
 radius = 200.0
 
-[sub_resource type="SphereMesh" id="SphereMesh_hjb8m"]
+[sub_resource type="SphereMesh" id="SphereMesh_o6xl0"]
 radius = 200.0
 height = 400.0
+radial_segments = 128
+rings = 64
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tipki"]
+disable_ambient_light = true
+albedo_texture = ExtResource("4_tefeu")
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_lfxu0"]
+height = 600.0
+
+[sub_resource type="Resource" id="Resource_o6xl0"]
+script = ExtResource("4_o6xl0")
+parent_body = NodePath("../Planet")
+apoapsis = 900.0
+tidally_locked = true
+inclination = 0.3490658503988659
+metadata/_custom_type_script = "uid://bh6qopnt2yrat"
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_hjb8m"]
+radius = 80.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_hjb8m"]
+radius = 80.0
+height = 160.0
 radial_segments = 128
 rings = 64
 
@@ -44,69 +90,124 @@ rings = 64
 disable_ambient_light = true
 albedo_texture = ExtResource("4_tbgi4")
 
-[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_tbgi4"]
-bounce = 1.0
-absorbent = true
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_tefeu"]
+height = 200.0
 
-[node name="SolarSystem" type="Node3D" unique_id=323298835 node_paths=PackedStringArray("player")]
+[node name="SolarSystem" type="Node3D" unique_id=323298835 node_paths=PackedStringArray("player", "world_origin", "map_camera", "map_camera_origin")]
 script = ExtResource("1_jyhfs")
-player = NodePath("Player")
+player = NodePath("WorldOrigin/Player")
+world_origin = NodePath("WorldOrigin")
+map_camera = NodePath("MapCameraOrigin/MapCamera")
+map_camera_origin = NodePath("MapCameraOrigin")
 
 [node name="Skybox" type="WorldEnvironment" parent="." unique_id=1475060691]
 environment = SubResource("Environment_lfxu0")
 
-[node name="Camera3D" type="Camera3D" parent="." unique_id=1733701076]
-process_mode = 4
-transform = Transform3D(-4.371139e-08, 1, 4.371139e-08, 0, -4.371139e-08, 1, 1, 4.371139e-08, 1.9106855e-15, 0, 650, 0)
+[node name="MapCameraOrigin" type="Marker3D" parent="." unique_id=343246540]
+transform = Transform3D(-4.371139e-08, -0.9999997, -4.3711374e-08, 0, -4.3711374e-08, 0.9999997, -1, 4.3711374e-08, 1.9106848e-15, -12.101082, 8000, 8795.205)
 
-[node name="Star" type="AnimatableBody3D" parent="." unique_id=256424575 node_paths=PackedStringArray("collision_shape", "mesh") groups=["rebaseable"]]
+[node name="MapCamera" type="Camera3D" parent="MapCameraOrigin" unique_id=1733701076]
+transform = Transform3D(1, 0, 0, 0, 0.99999994, 0, 0, 0, 0.99999994, 0, 0, 0)
+fov = 100.0
+far = 100000.0
+
+[node name="WorldOrigin" type="Node3D" parent="." unique_id=1496961808]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.101082, 0, 11595.311)
+
+[node name="Star" type="AnimatableBody3D" parent="WorldOrigin" unique_id=256424575 node_paths=PackedStringArray("collision_shape", "mesh", "child_bodies")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2800.105)
 script = ExtResource("3_tbgi4")
+body_name = "Star"
+radius = 1000.0
+surface_gravity = 40.0
 collision_shape = NodePath("CollisionShape3D")
-mesh = NodePath("MeshInstance3D")
-radius = 500.0
-surface_gravity = 20.0
+mesh = NodePath("Mesh")
+orbit = SubResource("Resource_85g3d")
+child_bodies = {
+NodePath("../Planet"): true
+}
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Star" unique_id=2125179676]
+[node name="OmniLight3D" type="OmniLight3D" parent="WorldOrigin/Star" unique_id=1069797711]
+light_energy = 10000.0
+shadow_enabled = true
+shadow_bias = 5.0
+shadow_normal_bias = 5.0
+distance_fade_shadow = 0.0
+omni_range = 13000.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WorldOrigin/Star" unique_id=2125179676]
 shape = SubResource("SphereShape3D_lfxu0")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Star" unique_id=1424727798]
+[node name="Mesh" type="MeshInstance3D" parent="WorldOrigin/Star" unique_id=1424727798]
 mesh = SubResource("SphereMesh_lfxu0")
 surface_material_override/0 = SubResource("StandardMaterial3D_0wfyh")
 
-[node name="OmniLight3D" type="OmniLight3D" parent="Star" unique_id=1069797711]
-light_energy = 5000.0
-light_specular = 0.0
-shadow_enabled = true
-shadow_bias = 1.0
-distance_fade_enabled = true
-distance_fade_length = 3402.0
-omni_range = 10000.0
-omni_shadow_mode = 0
+[node name="RemoteTransform3D" type="RemoteTransform3D" parent="WorldOrigin/Star" unique_id=262586335]
+transform = Transform3D(-4.371139e-08, -0.9999999, -4.3711385e-08, 0, -4.3711385e-08, 0.9999999, -1, 4.3711385e-08, 1.9106853e-15, 0, 8000, 0)
+remote_path = NodePath("../../../MapCameraOrigin")
+update_scale = false
 
-[node name="Planet" type="AnimatableBody3D" parent="." unique_id=1755902633 node_paths=PackedStringArray("collision_shape", "mesh", "parent_body") groups=["rebaseable"]]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3000)
+[node name="Planet" type="AnimatableBody3D" parent="WorldOrigin" unique_id=1755902633 node_paths=PackedStringArray("collision_shape", "mesh", "child_bodies")]
+transform = Transform3D(1, 0, 0, 0, 0.91775465, -0.3971479, 0, 0.3971479, 0.91775465, 0, 0, -10800.105)
+physics_material_override = SubResource("PhysicsMaterial_g2els")
+sync_to_physics = false
 script = ExtResource("3_tbgi4")
-collision_shape = NodePath("CollisionShape3D")
-mesh = NodePath("MeshInstance3D")
+body_name = "Planet"
 radius = 200.0
 surface_gravity = 9.8
-parent_body = NodePath("../Star")
-orbit_distance = 3000.0
-orbit_inclination = 1.0
-linear_velocity = Vector3(-1.78451e-06, 40.82483, 0)
-angular_velocity = Vector3(0, 0.08726646, 0)
+day_length = 120.0
+collision_shape = NodePath("CollisionShape3D")
+mesh = NodePath("Mesh")
+orbit = SubResource("Resource_7x8h1")
+child_bodies = {
+NodePath("../Moon"): true
+}
+linear_velocity = Vector3(-70.71068, 0, 0)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Planet" unique_id=72875803]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WorldOrigin/Planet" unique_id=72875803]
+shape = SubResource("SphereShape3D_tefeu")
+
+[node name="Mesh" type="MeshInstance3D" parent="WorldOrigin/Planet" unique_id=513786697]
+transform = Transform3D(1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0)
+mesh = SubResource("SphereMesh_o6xl0")
+surface_material_override/0 = SubResource("StandardMaterial3D_tipki")
+
+[node name="Axis" type="MeshInstance3D" parent="WorldOrigin/Planet/Mesh" unique_id=1819870302]
+mesh = SubResource("CapsuleMesh_lfxu0")
+surface_material_override/0 = ExtResource("6_tipki")
+
+[node name="Moon" type="AnimatableBody3D" parent="WorldOrigin" unique_id=1768735610 node_paths=PackedStringArray("collision_shape", "mesh")]
+transform = Transform3D(1, 0, 0, 0, 0.99965733, 0.02617695, 0, -0.02617695, 0.99965733, 0, 0, -11700.105)
+sync_to_physics = false
+script = ExtResource("3_tbgi4")
+body_name = "Moon"
+radius = 80.0
+surface_gravity = 4.0
+day_length = 270.95713962585654
+collision_shape = NodePath("CollisionShape3D")
+mesh = NodePath("Mesh")
+orbit = SubResource("Resource_o6xl0")
+linear_velocity = Vector3(-90.32204, -7.1379495, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WorldOrigin/Moon" unique_id=786149281]
 shape = SubResource("SphereShape3D_hjb8m")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Planet" unique_id=513786697]
+[node name="Mesh" type="MeshInstance3D" parent="WorldOrigin/Moon" unique_id=1127708659]
 transform = Transform3D(1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0)
 mesh = SubResource("SphereMesh_hjb8m")
 surface_material_override/0 = SubResource("StandardMaterial3D_jyhfs")
-metadata/_edit_group_ = true
 
-[node name="Player" parent="." unique_id=1916186712 instance=ExtResource("4_jyhfs")]
-physics_material_override = SubResource("PhysicsMaterial_tbgi4")
+[node name="Axis" type="MeshInstance3D" parent="WorldOrigin/Moon/Mesh" unique_id=209904967]
+mesh = SubResource("CapsuleMesh_tefeu")
+surface_material_override/0 = ExtResource("6_tipki")
+
+[node name="Player" parent="WorldOrigin" unique_id=1916186712 instance=ExtResource("4_jyhfs")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.101082, 0, -11595.311)
+can_sleep = false
+freeze_mode = 1
+linear_velocity = Vector3(-69.282036, 0, -5.6562145e-15)
+walk_speed = 10.0
+walk_acceleration = 20.0
 thrust_speed = 50.0
 
-[connection signal="update_linear_velocity" from="Player" to="." method="_on_player_update_linear_velocity"]
+[connection signal="map_opened" from="WorldOrigin/Player" to="." method="_on_player_map_opened"]

@@ -1,15 +1,17 @@
 [gd_scene format=3 uid="uid://dswp1l3t7voox"]
 
 [ext_resource type="Script" uid="uid://djlkaiwl6b81v" path="res://scenes/player.gd" id="1_3vyb7"]
+[ext_resource type="Material" uid="uid://db65v0cj1x6f5" path="res://assets/materials/player_material.tres" id="2_g2els"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_lfxu0"]
+radius = 0.3
+height = 0.6
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_lfxu0"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tefeu"]
-diffuse_mode = 1
-disable_ambient_light = true
+radius = 0.25
+height = 1.3227539
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_lfxu0"]
-margin = 0.0
 
 [node name="Player" type="RigidBody3D" unique_id=1916186712 node_paths=PackedStringArray("collision_shape", "ground_raycast", "camera_pivot", "camera", "grounded_counter_spin")]
 mass = 7.0
@@ -21,10 +23,18 @@ camera_pivot = NodePath("CameraPivot")
 camera = NodePath("CameraPivot/Camera3D")
 grounded_counter_spin = NodePath("CollisionShape/GroundedCounterSpin")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=296623505]
+[node name="Mesh" type="Node3D" parent="." unique_id=1370497984]
+
+[node name="Head" type="MeshInstance3D" parent="Mesh" unique_id=65948235]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6986094, 0)
+mesh = SubResource("SphereMesh_lfxu0")
+surface_material_override/0 = ExtResource("2_g2els")
+
+[node name="Body" type="MeshInstance3D" parent="Mesh" unique_id=296623505]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.3317871, 0)
 gi_mode = 0
 mesh = SubResource("CapsuleMesh_lfxu0")
-surface_material_override/0 = SubResource("StandardMaterial3D_tefeu")
+surface_material_override/0 = ExtResource("2_g2els")
 
 [node name="CollisionShape" type="CollisionShape3D" parent="." unique_id=1035658968]
 shape = SubResource("CapsuleShape3D_lfxu0")
@@ -33,18 +43,29 @@ shape = SubResource("CapsuleShape3D_lfxu0")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
 
 [node name="CameraPivot" type="Node3D" parent="." unique_id=72778139]
-transform = Transform3D(1, 0, 0, 0, 0.99999994, 0, 0, 0, 0.99999994, 0, 0.49429822, -0.5671428)
+transform = Transform3D(1, 0, 0, 0, 0.99999994, 0, 0, 0, 0.99999994, 0, 0.7206911, -0.3823272)
+
+[node name="FlashlightRemoteTransform" type="RemoteTransform3D" parent="CameraPivot" unique_id=1454116476]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3867213, -0.55643666, 0)
+remote_path = NodePath("../../Flashlight")
+update_position = false
+update_scale = false
 
 [node name="Camera3D" type="Camera3D" parent="CameraPivot" unique_id=712293505]
 current = true
+fov = 90.0
+far = 1000000.0
 
-[node name="SpotLight3D" type="SpotLight3D" parent="CameraPivot" unique_id=737936122]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.37250507, -0.46502382, 5.9604645e-08)
-spot_range = 20.0
+[node name="Flashlight" type="SpotLight3D" parent="." unique_id=737936122]
+auto_translate_mode = 2
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35365242, -0.062137544, -0.2630347)
+shadow_enabled = true
+shadow_bias = 1.0
+spot_range = 100.0
 spot_attenuation = 0.0
 spot_angle = 16.45044
 
 [node name="GroundedRayCast" type="RayCast3D" parent="." unique_id=345704609]
 transform = Transform3D(1, 0, 0, 0, 0.99999994, 0, 0, 0, 0.99999994, 0, -1, 0)
-target_position = Vector3(0, -0.5, 0)
+target_position = Vector3(0, -0.2, 0)
 hit_from_inside = true
