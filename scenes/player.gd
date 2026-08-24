@@ -21,20 +21,29 @@ const ZERO_G_THRESHOLD: float = 0.2**2
 @export var grounded_counter_spin: Marker3D
 @export_group("")
 
+@export var spawn_point: Marker3D:
+	set(val):
+		spawn_point = val
+		spawn_point_set.emit()
+signal spawn_point_set
+
 var is_grounded: bool = false
 var in_zero_G: bool = false
-var _ground: GravBody
+
 var parent_body: GravBody
 var parent_gravity: Vector3 = Vector3.ZERO
+
+var _ground: GravBody
 var _strongest_gravity: Vector3 = Vector3.ZERO
-var radius: float = 1.0
 
 var _current_grav_vector: Vector3 = Vector3.ZERO
 var _surface_position: Vector3 = Vector3.ZERO
 var _is_stuck_to_surface: bool = false
+var _lock_relative_camera_rotation: bool = false
 var _is_reorienting: bool = false
-var _mouselook_enabled = true:
+var _mouselook_enabled = false:
 	set(val):
+		if !get_window(): return
 		_mouselook_enabled = val
 		if _mouselook_enabled:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -52,8 +61,7 @@ signal map_opened(is_open: bool, target_position: Vector3, camera_distance: floa
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	_mouselook_enabled = true
-	radius = collision_shape.shape.height/2
+	_mouselook_enabled = false
 	pass # Replace with function body.
 
 func _input(event: InputEvent) -> void:
@@ -67,13 +75,10 @@ func _input(event: InputEvent) -> void:
 			camera.position = Vector3.ZERO
 	if Input.is_action_just_pressed("open_map"):
 		_is_map_open = !_is_map_open
-		print(global_position)
-		if !in_zero_G:
-			map_opened.emit(_is_map_open, parent_body.global_position)
-		else:
-			map_opened.emit(_is_map_open, global_position)
+		#print(global_position)
+		map_opened.emit(_is_map_open)
 		camera.current = !_is_map_open
-		print(camera.current)
+		#print(camera.current)
 		
 	if event is InputEventMouseButton and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE:
 		_mouselook_enabled = true
@@ -215,6 +220,7 @@ func _process_look_input(delta: float) -> void:
 
 func _process_orientation(delta: float) -> void:
 	var lerp_speed = 6.0
+	_lock_relative_camera_rotation = _is_reorienting
 	if is_grounded or !in_zero_G:
 		#var target = _ground if is_grounded else parent_body
 		var target = parent_body
@@ -233,7 +239,7 @@ func _process_orientation(delta: float) -> void:
 		#if is_grounded:
 			#lerp_speed = 1/delta
 		var new_quat = current_quat.slerp(target_quat, min(lerp_speed*delta, 1.0))
-		if _is_reorienting:
+		if _lock_relative_camera_rotation:
 			if angle_offset <= 0.02:
 				new_quat = target_quat
 				_is_reorienting = false

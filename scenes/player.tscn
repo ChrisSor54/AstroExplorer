@@ -40,7 +40,6 @@ mesh = SubResource("CapsuleMesh_lfxu0")
 surface_material_override/0 = ExtResource("2_g2els")
 
 [node name="CollisionShape" type="CollisionShape3D" parent="." unique_id=1035658968]
-top_level = true
 shape = SubResource("CapsuleShape3D_lfxu0")
 
 [node name="RemoteTransform3D" type="RemoteTransform3D" parent="CollisionShape" unique_id=1275896369]

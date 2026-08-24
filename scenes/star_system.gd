@@ -17,12 +17,15 @@ var rigid_bodies: Array[RigidBody3D]
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	for node in world_origin.get_children():
-		if node is GravBody:
-			bodies.append(node)
-			node.init()
-		elif node is RigidBody3D:
-			rigid_bodies.append(node)
+	if !Engine.is_editor_hint():
+		for node in world_origin.get_children():
+			if node is GravBody:
+				bodies.append(node)
+				node.init()
+			elif node is RigidBody3D:
+				rigid_bodies.append(node)
+		
+		
 	#if player:
 		#player.apply_central_force($WorldOrigin/Planet.linear_velocity*player.mass)
 		#player.teleport_to_body($WorldOrigin/Planet)
@@ -36,6 +39,8 @@ func _process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		if player:
 			#update_relative_velocities(player.linear_velocity)
+			if player.spawn_point and player.global_position != player.spawn_point.global_position:
+				_on_player_spawn_point_set()
 			float_origin(player.global_position)
 
 func _physics_process(delta: float) -> void:
@@ -96,7 +101,8 @@ func update_relative_velocities(offset_velocity):
 
 
 func float_origin(offset: Vector3):
-	world_origin.global_transform.origin -= offset
+	if offset != Vector3.ZERO:
+		world_origin.global_transform.origin -= offset
 
 
 func _on_player_map_opened(is_open: bool, target_position: Vector3 = Vector3.ZERO, camera_distance: float = 2000) -> void:
@@ -104,7 +110,16 @@ func _on_player_map_opened(is_open: bool, target_position: Vector3 = Vector3.ZER
 		map_camera.current = true
 		var camera_forward = -map_camera.global_transform.basis.z.normalized()
 		#print("Target: ", target_position, ", Origin: ", map_camera_origin.global_position, ", Position: ", map_camera.position)
-		map_camera.global_position = world_origin.get_node("Star").global_position - camera_forward*camera_distance
+		print(camera_forward)
+		map_camera.global_position = map_camera_origin.global_position - camera_forward*camera_distance
 	else:
 		map_camera.current = false
 		map_camera.position = Vector3.ZERO
+
+
+func _on_player_spawn_point_set() -> void:
+	if player.spawn_point == null: return
+	var home_planet: GravBody = player.spawn_point.get_parent()
+	player.global_position = player.spawn_point.global_position
+	player.global_rotation = player.spawn_point.global_rotation
+	player.linear_velocity = home_planet.linear_velocity + home_planet.get_surface_velocity_from(player.spawn_point.global_position)
