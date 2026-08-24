@@ -1,0 +1,99 @@
+[gd_scene format=3 uid="uid://dpwm0dax0gade"]
+
+[ext_resource type="Script" uid="uid://crvskuyyypoo3" path="res://scenes/player_character.gd" id="1_kww55"]
+[ext_resource type="Material" uid="uid://db65v0cj1x6f5" path="res://assets/materials/player_material.tres" id="2_4h0vy"]
+[ext_resource type="Script" uid="uid://crg1q3o3thkmd" path="res://scenes/player_hud.gd" id="3_uj7mf"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_lfxu0"]
+radius = 0.3
+height = 0.6
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_lfxu0"]
+radius = 0.25
+height = 1.3227539
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_lfxu0"]
+margin = 0.02
+
+[node name="Player" type="CharacterBody3D" unique_id=1045572976 node_paths=PackedStringArray("collision_shape", "ground_raycast", "camera_pivot", "camera")]
+script = ExtResource("1_kww55")
+collision_shape = NodePath("CollisionShape")
+ground_raycast = NodePath("GroundedRayCast")
+camera_pivot = NodePath("CameraPivot")
+camera = NodePath("CameraPivot/Camera3D")
+
+[node name="Mesh" type="Node3D" parent="." unique_id=1370497984]
+
+[node name="Head" type="MeshInstance3D" parent="Mesh" unique_id=65948235]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6986094, 0)
+mesh = SubResource("SphereMesh_lfxu0")
+surface_material_override/0 = ExtResource("2_4h0vy")
+
+[node name="Body" type="MeshInstance3D" parent="Mesh" unique_id=296623505]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.3317871, 0)
+gi_mode = 0
+mesh = SubResource("CapsuleMesh_lfxu0")
+surface_material_override/0 = ExtResource("2_4h0vy")
+
+[node name="CollisionShape" type="CollisionShape3D" parent="." unique_id=1035658968]
+top_level = true
+shape = SubResource("CapsuleShape3D_lfxu0")
+
+[node name="RemoteTransform3D" type="RemoteTransform3D" parent="CollisionShape" unique_id=1275896369]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
+remote_path = NodePath("../../GroundedRayCast")
+update_scale = false
+
+[node name="GroundedRayCast" type="RayCast3D" parent="." unique_id=345704609]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
+target_position = Vector3(0, -0.02, 0)
+hit_from_inside = true
+
+[node name="CameraPivot" type="Node3D" parent="." unique_id=72778139]
+transform = Transform3D(1, 0, 0, 0, 0.99999994, 0, 0, 0, 0.99999994, 0, 0.7206911, -0.3823272)
+
+[node name="FlashlightRemoteTransform" type="RemoteTransform3D" parent="CameraPivot" unique_id=1454116476]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3867213, -0.55643666, 0)
+remote_path = NodePath("../../Flashlight")
+update_position = false
+update_scale = false
+
+[node name="Camera3D" type="Camera3D" parent="CameraPivot" unique_id=712293505]
+current = true
+fov = 90.0
+far = 1000000.0
+
+[node name="Flashlight" type="SpotLight3D" parent="." unique_id=737936122]
+auto_translate_mode = 2
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35365242, -0.06213765, -0.26303482)
+shadow_enabled = true
+shadow_bias = 1.0
+spot_range = 100.0
+spot_attenuation = 0.0
+spot_angle = 16.45044
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1181960250 node_paths=PackedStringArray("control", "gravity_label", "debug_label")]
+script = ExtResource("3_uj7mf")
+control = NodePath("Control")
+gravity_label = NodePath("Control/GravityLabel")
+debug_label = NodePath("Control/DebugLabel")
+
+[node name="Control" type="Control" parent="HUD" unique_id=2042244301]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="GravityLabel" type="Label" parent="HUD/Control" unique_id=1459067998]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -23.0
+offset_right = 40.0
+grow_vertical = 0
+
+[node name="DebugLabel" type="Label" parent="HUD/Control" unique_id=1412820774]
+layout_mode = 0
+offset_right = 131.0
+offset_bottom = 64.0

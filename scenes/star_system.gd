@@ -43,7 +43,8 @@ func _physics_process(delta: float) -> void:
 	
 	# Floating Origin
 	if player:
-		update_relative_velocities(player.linear_velocity)
+		var reference_velocity = player.linear_velocity
+		update_relative_velocities(reference_velocity)
 		float_origin(player.global_position)
 	apply_gravity(delta)
 
@@ -52,7 +53,8 @@ func apply_gravity(delta: float) -> void:
 	for node in world_origin.get_children():
 		if node is Player:
 			node.parent_body = null
-			node._strongest_scaled_gravity = Vector3.ZERO
+			node.parent_gravity = Vector3.ZERO
+			node._current_grav_vector = node.get_gravity()
 	
 	for body in bodies:
 		if !body.enabled: continue
@@ -74,13 +76,16 @@ func apply_gravity(delta: float) -> void:
 		for node in rigid_bodies:
 			grav_vector = body.get_gravity_vector_from(node.global_position, node.mass)
 			if node is Player:
-				var scaled_grav = body.get_gravity_vector_from(node.global_position, node.mass, 3)
-				if scaled_grav.length_squared() > node._strongest_scaled_gravity.length_squared():
+				#var scaled_grav = body.get_gravity_vector_from(node.global_position, node.mass, 3)
+				if body.global_position.distance_to(node.global_position) <= (body.radius/2) and node.parent_gravity == Vector3.ZERO \
+				or body.global_position.distance_to(node.global_position) <= 2*body.radius and grav_vector.length_squared() > node.parent_gravity.length_squared():
 					node.parent_body = body
-					node._strongest_scaled_gravity = scaled_grav
 					node.parent_gravity = grav_vector
+					node._current_grav_vector += grav_vector
 					#print((grav_vector/player.mass).length())
+				
 			node.apply_central_force(grav_vector)
+			
 			#apply_force_to_player(grav_vector)
 			#print(player.global_position)
 	
@@ -99,7 +104,7 @@ func _on_player_map_opened(is_open: bool, target_position: Vector3 = Vector3.ZER
 		map_camera.current = true
 		var camera_forward = -map_camera.global_transform.basis.z.normalized()
 		#print("Target: ", target_position, ", Origin: ", map_camera_origin.global_position, ", Position: ", map_camera.position)
-		#map_camera.global_position = target_position - camera_forward*camera_distance
+		map_camera.global_position = world_origin.get_node("Star").global_position - camera_forward*camera_distance
 	else:
 		map_camera.current = false
 		map_camera.position = Vector3.ZERO

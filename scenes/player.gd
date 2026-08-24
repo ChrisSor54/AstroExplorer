@@ -4,12 +4,12 @@ class_name Player
 const MAX_GROUNDED_MOVE_SPEED: float = 15.0
 const JUMP_IMPULSE: float = 100.0
 const CAMERA_ANGLE_LIMIT: float = 75
-const ZERO_G_THRESHOLD: float = 2.0
+const ZERO_G_THRESHOLD: float = 0.2**2
 
 @export_group("Movement")
 @export var walk_speed: float = 15.0
 @export var walk_acceleration: float = 1.0
-@export var thrust_speed: float = 10.0
+@export var thrust_strength: float = 10.0
 @export var jump_strength: float = 100.0
 @export_group("")
 
@@ -26,11 +26,12 @@ var in_zero_G: bool = false
 var _ground: GravBody
 var parent_body: GravBody
 var parent_gravity: Vector3 = Vector3.ZERO
-var _strongest_scaled_gravity: Vector3 = Vector3.ZERO
+var _strongest_gravity: Vector3 = Vector3.ZERO
 var radius: float = 1.0
 
-#var _surface_position: Vector3 = Vector3.ZERO
-#var _is_stuck_to_surface: bool = false
+var _current_grav_vector: Vector3 = Vector3.ZERO
+var _surface_position: Vector3 = Vector3.ZERO
+var _is_stuck_to_surface: bool = false
 var _is_reorienting: bool = false
 var _mouselook_enabled = true:
 	set(val):
@@ -68,9 +69,9 @@ func _input(event: InputEvent) -> void:
 		_is_map_open = !_is_map_open
 		print(global_position)
 		if !in_zero_G:
-			map_opened.emit(_is_map_open, parent_body.global_position, 2000)
+			map_opened.emit(_is_map_open, parent_body.global_position)
 		else:
-			map_opened.emit(_is_map_open, global_position, 4000)
+			map_opened.emit(_is_map_open, global_position)
 		camera.current = !_is_map_open
 		print(camera.current)
 		
@@ -86,7 +87,7 @@ func _process(delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	_ground = ground_raycast.get_collider()
-	if (parent_gravity/mass).length() >= ZERO_G_THRESHOLD and global_position.distance_to(parent_body.global_position) <= 2*parent_body.radius:
+	if (parent_gravity/mass).length() >= ZERO_G_THRESHOLD:
 		if in_zero_G:
 			_is_reorienting = true
 		in_zero_G = false
@@ -95,10 +96,20 @@ func _physics_process(delta: float) -> void:
 		if !in_zero_G:
 			_is_reorienting = true
 		in_zero_G = true
-	var up_vector = global_transform.basis.y.normalized()
-	if ground_raycast.is_colliding() and linear_velocity.dot(up_vector) <= 0:
+	
+	if ground_raycast.is_colliding():
+		var up_vector = (global_position - _ground.global_position).normalized()
+		if linear_velocity.dot(up_vector) <= 0.2:
+			if !is_grounded:
+				var relative_velocity = linear_velocity - _ground.linear_velocity
+				var upwards_relative_velocity = relative_velocity.project(up_vector)
+				if upwards_relative_velocity.length_squared() <= 0.2**2:
+					print(upwards_relative_velocity.length())
+					linear_velocity -= upwards_relative_velocity
 		#global_position += (ground_raycast.global_position - ground_raycast.get_collision_point())
-		is_grounded = true
+			is_grounded = true
+		else:
+			is_grounded = false
 	else:
 		#if is_grounded:
 			#_is_reorienting = true
@@ -115,27 +126,42 @@ func _process_movement_input(delta: float) -> void:
 	var forward_vector = -global_transform.basis.z.normalized()
 	var left_vector = -global_transform.basis.x.normalized()
 	var up_vector = global_transform.basis.y.normalized()
-	#angular_damp = 10.0
 	
 	var input_vector = Vector3.ZERO
 	var rotation_axis = 0.0
 	input_vector += Input.get_axis("backward", "forward") * forward_vector
 	input_vector += Input.get_axis("right", "left") * left_vector
 	if !is_grounded:
+		_is_stuck_to_surface = false
 		input_vector += Input.get_axis("fly_down", "fly_up") * up_vector
 	if in_zero_G:
+		_is_stuck_to_surface = false
 		rotation_axis = Input.get_axis("rotate_left", "rotate_right")
 		#print(input_vector)
 
 	var move_vector = Vector3.ZERO
 	if is_grounded:
+		var is_jumping = Input.is_action_just_pressed("jump")
+		if is_jumping:
+			var impulse_vector = jump_strength*up_vector
+			#move_vector = up_vector
+			#linear_velocity += impulse_vector/mass
+			apply_central_impulse(impulse_vector)
+			_is_stuck_to_surface = false
+			is_grounded = false
+		#if (ground_raycast.global_position - ground_raycast.get_collision_point() )
 		#print(_ground.angular_velocity)
 		
-		if !_ignore_spin: angular_velocity += _ground.angular_velocity.project(up_vector)
+		#angular_damp = 100
+		if !_ignore_spin:
+			angular_damp = 0.0
+			angular_velocity += _ground.angular_velocity.project(up_vector)
 		#r = r.normalized()*(r.length() + radius)
-		var surface_velocity = _ground.linear_velocity + _ground.get_surface_velocity_from(grounded_counter_spin.global_position)
+		var surface_velocity = _ground.linear_velocity + _ground.get_surface_velocity_from(ground_raycast.get_collision_point())
 		var relative_velocity = linear_velocity - surface_velocity
-		relative_velocity -= relative_velocity.project(up_vector)
+		var upwards_relative_velocity = relative_velocity.project(up_vector)
+		var surface_relative_velocity = relative_velocity - upwards_relative_velocity
+		#relative_velocity -= upwards_relative_velocity
 		var forward_speed = relative_velocity.dot(input_vector)
 		var target_force = max(walk_speed-forward_speed, 0)
 		if input_vector != Vector3.ZERO:
@@ -147,23 +173,30 @@ func _process_movement_input(delta: float) -> void:
 				#relative_velocity = linear_velocity - surface_velocity
 				#relative_velocity -= relative_velocity.project(up_vector)
 			#else:
-		var deceleration_speed = relative_velocity.length()*mass
-		move_vector -= (relative_velocity.normalized() - input_vector)*deceleration_speed*mass
-			#move_vector = (-relative_velocity)
-		if Input.is_action_just_pressed("jump"):
-			var impulse_vector = jump_strength*up_vector
-			#move_vector = up_vector
-			#linear_velocity += impulse_vector/mass
-			apply_central_impulse(impulse_vector)
+			_is_stuck_to_surface = false
+		else:
+			if !is_jumping and relative_velocity.length_squared() <= 0.2:
+				if _is_stuck_to_surface:
+					global_position = _ground.to_global(_surface_position)
+				else:
+					_is_stuck_to_surface = true
+					var ground_offset = (ground_raycast.global_position - ground_raycast.get_collision_point()).dot(up_vector)
+					_surface_position = _ground.to_local(global_position)
+				linear_velocity = surface_velocity
+			else:
+				_is_stuck_to_surface = false
+		if !_is_stuck_to_surface and !is_jumping:
+			var deceleration_speed = relative_velocity.length()*mass
+			move_vector -= (surface_relative_velocity.normalized() - input_vector)*deceleration_speed*mass
 		#if relative_velocity.length() != 0: print(relative_velocity.length())
 	else:
 		if input_vector != Vector3.ZERO:
 			input_vector = input_vector.normalized()
-			move_vector = input_vector.normalized()*thrust_speed
+			move_vector = input_vector.normalized()*thrust_strength
 	if move_vector != Vector3.ZERO:
 		apply_central_force(move_vector)
 	if rotation_axis != 0:
-		angular_velocity += forward_vector*rotation_axis*thrust_speed*delta
+		angular_velocity += forward_vector*rotation_axis*thrust_strength*delta
 
 
 func _process_look_input(delta: float) -> void:
@@ -183,18 +216,29 @@ func _process_look_input(delta: float) -> void:
 func _process_orientation(delta: float) -> void:
 	var lerp_speed = 6.0
 	if is_grounded or !in_zero_G:
-		var target = _ground if is_grounded else parent_body
-		var up_vector = (global_position - target.global_position).normalized()
-		var old_quat = global_transform.basis.get_rotation_quaternion()
-		var target_quat = (Quaternion(global_transform.basis.y, up_vector) * old_quat).normalized()
-		var new_quat = target_quat
+		#var target = _ground if is_grounded else parent_body
+		var target = parent_body
+		#var up_vector = (global_position - target.global_position).normalized()
+		var up_vector = -_current_grav_vector.normalized()
+		if get_gravity() != Vector3.ZERO:
+			print("custom gravity")
+			up_vector = -get_gravity().normalized()
+		var current_quat = global_transform.basis.get_rotation_quaternion()
+		var target_quat = (Quaternion(global_transform.basis.y, up_vector) * current_quat).normalized()
+		var angle_offset = current_quat.angle_to(target_quat)
+		if angle_offset >= deg_to_rad(1):
+			lerp_speed = rad_to_deg(1/angle_offset)/10
+		else:
+			lerp_speed = 1/delta
+		#if is_grounded:
+			#lerp_speed = 1/delta
+		var new_quat = current_quat.slerp(target_quat, min(lerp_speed*delta, 1.0))
 		if _is_reorienting:
-			new_quat = old_quat.slerp(target_quat, min(lerp_speed*delta, 1.0))
-			if new_quat.angle_to(target_quat) <= 0.02:
+			if angle_offset <= 0.02:
 				new_quat = target_quat
 				_is_reorienting = false
 			var camera_right_axis = camera_pivot.global_transform.basis.x
-			var old_forward = old_quat * Vector3.FORWARD
+			var old_forward = current_quat * Vector3.FORWARD
 			var new_forward = new_quat * Vector3.FORWARD
 			var pitch_delta = old_forward.signed_angle_to(new_forward, camera_right_axis)
 			camera_pivot.rotation.x -= pitch_delta

@@ -16,17 +16,20 @@ var acceleration: Vector3 = Vector3.ZERO
 			process_mode = ProcessMode.PROCESS_MODE_DISABLED
 		enabled = val
 
-@export var radius: float: 
+@export var radius: float = 1.0: 
 	set(new_radius):
 		radius = new_radius
 		if collision_shape and mesh:
 			collision_shape.shape.radius = new_radius
 			mesh.mesh.radius = new_radius
 			mesh.mesh.height = 2*new_radius
+		calculate_mass()
+
 @export var surface_gravity: float = 1.0:
 	set(new_gravity):
 		surface_gravity = new_gravity
-		mass = max(surface_gravity*pow(radius, 2)/G, 0.01)
+		calculate_mass()
+		
 
 @export_custom(PROPERTY_HINT_NONE, "suffix:seconds") var day_length: float = 0.0:
 	set(new_val):
@@ -81,9 +84,10 @@ func _ready() -> void:
 
 func init() -> void:
 	print(self.name, " initialized")
-	collision_shape.shape.radius = radius
-	mesh.mesh.radius = radius
-	mesh.mesh.height = 2*radius
+	if collision_shape:
+		collision_shape.shape.radius = radius
+		mesh.mesh.radius = radius
+		mesh.mesh.height = 2*radius
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -193,3 +197,9 @@ func get_surface_velocity_from(from_position: Vector3) -> Vector3:
 	var speed = angular_velocity.length()
 	var world_angular_velocity = global_transform.basis.y.normalized() * speed
 	return world_angular_velocity.cross(r)
+
+func calculate_mass():
+	mass = max(surface_gravity*pow(radius, 2)/G, 0.01)
+	for body in child_bodies:
+		body.update_orbit()
+	
