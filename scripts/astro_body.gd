@@ -1,11 +1,10 @@
-extends AnimatableBody3D
 class_name AstroBody
+extends AnimatableBody3D
+
 
 ## Gravitational Constant
 const G: float = StarSystem.G
 
-
-var mass: float = 1.0
 
 @export
 var enabled: bool = true:
@@ -16,6 +15,10 @@ var enabled: bool = true:
 			process_mode = ProcessMode.PROCESS_MODE_DISABLED
 		enabled = val
 		visible = val
+
+
+@export var radius: float = 1.0
+@export var mass: float = 1.0
 
 @export_custom(PROPERTY_HINT_NONE, "suffix:m/s")
 var linear_velocity: Vector3 = Vector3.ZERO
@@ -99,5 +102,13 @@ func get_gravity_vector_between(target_body: AstroBody) -> Vector3:
 ## [param target_position] with a mass of [param target_mass]
 func get_gravity_vector_from(target_position: Vector3, target_mass: float = 1.0) -> Vector3:
 	var normal := global_position - target_position
-	var distance_factor = normal.length_squared()
-	return normal.normalized()*(G*mass*target_mass/distance_factor)
+	var sqr_distance = normal.length_squared()
+	var gravity_vector = Vector3.ZERO
+	if is_zero_approx(sqr_distance):
+		gravity_vector = Vector3.ZERO
+	elif sqr_distance >= pow(radius, 2):
+		gravity_vector = normal.normalized()*(G*mass*target_mass/sqr_distance)
+	else:
+		var distance = normal.length()
+		gravity_vector = normal.normalized()*((G*mass*target_mass*distance)/(pow(radius, 3)))
+	return gravity_vector

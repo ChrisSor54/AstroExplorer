@@ -1,6 +1,6 @@
 @tool
-extends Resource
 class_name Orbit
+extends Resource
 
 var _ignore_update: bool = false
 

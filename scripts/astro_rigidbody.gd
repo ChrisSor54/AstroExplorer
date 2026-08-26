@@ -1,5 +1,6 @@
-extends RigidBody3D
 class_name AstroRigidBody
+extends RigidBody3D
+
 
 var parent_body: AstroBody = null
 var parent_gravity: Vector3 = Vector3.ZERO

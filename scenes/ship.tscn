@@ -86,6 +86,7 @@ points = PackedVector3Array(-3.5037937, -0.86236525, -1.9254872, -0.88906795, -2
 
 [node name="Ship" type="RigidBody3D" unique_id=391114159]
 mass = 1000.0
+can_sleep = false
 script = ExtResource("1_q631a")
 metadata/_custom_type_script = "uid://divavnkqowv7f"
 

@@ -1,5 +1,6 @@
-extends AstroRigidBody
 class_name Player
+extends AstroRigidBody
+
 
 const MAX_GROUNDED_MOVE_SPEED: float = 15.0
 const JUMP_IMPULSE: float = 100.0
@@ -24,7 +25,9 @@ const ZERO_G_THRESHOLD: float = 0.2**2
 	set(val):
 		spawn_point = val
 		spawn_point_set.emit()
+		
 signal spawn_point_set
+
 
 var is_grounded: bool = false
 var in_zero_G: bool = false
@@ -32,7 +35,7 @@ var in_zero_G: bool = false
 var _ground: PhysicsBody3D = null
 var _is_stuck_to_surface: bool = false
 var _surface_position: Vector3 = Vector3.ZERO
-var _is_jumping: bool = false
+#var _is_jumping: bool = false
 var _lock_relative_camera_rotation: bool = false
 var _is_reorienting: bool = false
 var _mouselook_enabled = false:
@@ -65,8 +68,10 @@ func _input(event: InputEvent) -> void:
 		_thirdperson_enabled = !_thirdperson_enabled
 		if _thirdperson_enabled:
 			camera.position = Vector3(0,0,2.5)
+			camera.set_cull_mask_value(2, true)
 		else:
 			camera.position = Vector3.ZERO
+			camera.set_cull_mask_value(2, false)
 	if Input.is_action_just_pressed("open_map"):
 		_is_map_open = !_is_map_open
 		#print(global_position)
@@ -81,7 +86,7 @@ func _input(event: InputEvent) -> void:
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	pass
 
 func _physics_process(delta: float) -> void:
@@ -96,14 +101,14 @@ func _physics_process(delta: float) -> void:
 			_is_reorienting = true
 		in_zero_G = true
 	
-	if ground_raycast.is_colliding():
-		var up_vector = (global_position - _ground.global_position).normalized()
-		#if linear_velocity.dot(up_vector) <= 0.2:
+	if ground_raycast.is_colliding() and _ground != null:
+		var up_vector = (global_position-_ground.global_position).normalized()
+		if linear_velocity.dot(up_vector) >= 0:
 		##global_position += (ground_raycast.global_position - ground_raycast.get_collision_point())
-			#is_grounded = true
-		#else:
-			#is_grounded = false
-		is_grounded = true
+			is_grounded = true
+		else:
+			is_grounded = false
+		#is_grounded = true
 	else:
 		#if is_grounded:
 			#_is_reorienting = true
@@ -113,6 +118,14 @@ func _physics_process(delta: float) -> void:
 	_process_movement_input(delta)
 	#update_linear_velocity.emit(linear_velocity)
 	#linear_velocity = Vector3.ZERO
+
+#func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
+	#super._integrate_forces(state)
+	#var up_vector = global_transform.basis.y.normalized()
+	#var spin = state.angular_velocity.project(up_vector)
+	##var controlled_angular_velocity = state.angular_velocity - spin
+	##state.angular_velocity -= spin
+	#global_rotation += (state.angular_velocity)*state.step
 
 
 func _process_movement_input(delta: float) -> void:
@@ -134,13 +147,15 @@ func _process_movement_input(delta: float) -> void:
 
 	var move_vector = Vector3.ZERO
 	if is_grounded:
-		up_vector = (global_position - parent_body.global_position).normalized()
+		#up_vector = (global_position - parent_body.global_position).normalized()
+		
 		if input_vector != Vector3.ZERO:
 			input_vector = input_vector.normalized()
 		var is_jumping = Input.is_action_just_pressed("jump")
 		if is_jumping:
-			var impulse_vector = jump_strength*up_vector
+			var impulse_vector = jump_strength*up_vector*mass
 			apply_impulse(impulse_vector)
+			_ground.apply_impulse(-impulse_vector)
 			_is_stuck_to_surface = false
 			is_grounded = false
 		
@@ -175,7 +190,7 @@ func _process_movement_input(delta: float) -> void:
 						global_position = _ground.to_global(_surface_position)
 					else:
 						_is_stuck_to_surface = true
-						var ground_offset = (ground_raycast.global_position - ground_raycast.get_collision_point()).dot(up_vector)
+						#var ground_offset = (ground_raycast.global_position - ground_raycast.get_collision_point()).dot(up_vector)
 						_surface_position = _ground.to_local(global_position)
 					linear_velocity = surface_velocity
 				else:
@@ -188,14 +203,14 @@ func _process_movement_input(delta: float) -> void:
 		#if relative_velocity.length() != 0: print(relative_velocity.length())
 	else:
 		if input_vector != Vector3.ZERO:
-			move_vector = input_vector*thrust_strength
+			move_vector = input_vector*thrust_strength*mass
 	if move_vector != Vector3.ZERO:
 		apply_central_force(move_vector)
 	if rotation_axis != 0:
-		global_rotation += forward_vector*rotation_axis*thrust_strength*delta*delta
+		global_rotation += forward_vector*rotation_axis*thrust_strength*delta
 
 
-func _process_look_input(delta: float) -> void:
+func _process_look_input(_delta: float) -> void:
 	#var left_vector = -global_transform.basis.x.normalized()
 	var up_vector = -global_transform.basis.y.normalized()
 	angular_velocity = Vector3.ZERO
@@ -214,8 +229,8 @@ func _process_orientation(delta: float) -> void:
 	_lock_relative_camera_rotation = _is_reorienting
 	if is_grounded or !in_zero_G:
 		#var target = _ground if is_grounded else parent_body
-		var target = parent_body
-		var up_vector = (global_position - target.global_position).normalized()
+		var target = parent_body if parent_body else _ground
+		var up_vector = (global_position-target.global_position).normalized()
 		#var up_vector = -parent_gravity.normalized()
 		if get_gravity() != Vector3.ZERO:
 			up_vector = -get_gravity().normalized()

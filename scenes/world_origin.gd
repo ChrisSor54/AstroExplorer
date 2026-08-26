@@ -1,6 +1,7 @@
 @tool
-extends Node3D
 class_name WorldOriginController
+extends Node3D
+
 
 @export var reference_body: PhysicsBody3D:
 	set(new_reference_body):

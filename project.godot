@@ -88,6 +88,9 @@ open_map={
 
 [layer_names]
 
+3d_render/layer_1="FirstPersonCamera"
+3d_render/layer_2="ThirdPersonCamera"
+3d_render/layer_3="MapCamera"
 3d_physics/layer_1="Player"
 3d_physics/layer_2="Bodies"
 

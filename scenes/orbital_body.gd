@@ -1,6 +1,7 @@
 @tool
-extends AstroBody
 class_name OrbitalBody
+extends AstroBody
+
 
 
 
@@ -8,7 +9,7 @@ class_name OrbitalBody
 var body_name: String
 
 @export
-var radius: float = 1.0: 
+var body_radius: float = 1.0: 
 	set(new_radius):
 		radius = new_radius
 		if collision_shape and mesh:
@@ -16,6 +17,7 @@ var radius: float = 1.0:
 			mesh.mesh.radius = new_radius
 			mesh.mesh.height = 2*new_radius
 		calculate_mass()
+	get(): return radius
 
 @export
 var surface_gravity: float = 1.0:
@@ -134,9 +136,9 @@ func _physics_process(delta: float) -> void:
 	if !enabled: return
 	super._physics_process(delta)
 	
-	
-	if has_node("./OrbitalPath"):
-		get_node("./OrbitalPath").global_position = parent_body.global_position
+	var orbital_path = get_node_or_null("./OrbitalPath")
+	if orbital_path != null:
+		orbital_path.global_position = parent_body.global_position
 
 
 func get_surface_velocity_from(from_position: Vector3) -> Vector3:
@@ -249,6 +251,9 @@ func generate_orbital_path_visualization(num_points: int = 360):
 	var orbital_path: MeshInstance3D = get_node_or_null("./OrbitalPath")
 	if !orbital_path:
 		orbital_path = MeshInstance3D.new()
+		orbital_path.set_layer_mask_value(1, false)
+		orbital_path.set_layer_mask_value(2, false)
+		orbital_path.set_layer_mask_value(3, true)
 		add_child(orbital_path)
 	
 	if orbit == null or !parent_body:
@@ -302,7 +307,8 @@ func generate_orbital_path_visualization(num_points: int = 360):
 			sprite.texture = texture
 			orbital_path.add_child(sprite)
 		sprite.set_layer_mask_value(1, false)
-		sprite.set_layer_mask_value(2, true)
+		sprite.set_layer_mask_value(2, false)
+		sprite.set_layer_mask_value(3, true)
 		sprite.visible = !hide_node
 		sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		sprite.scale = Vector3(1,1,1)*radius

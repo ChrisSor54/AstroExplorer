@@ -1,0 +1,76 @@
+[gd_scene format=3 uid="uid://dgxffa602xqsl"]
+
+[ext_resource type="Script" uid="uid://rvgmrm5i4giv" path="res://scenes/star_system.gd" id="1_vdu5x"]
+[ext_resource type="Script" uid="uid://c0x5f7dkpjfkm" path="res://scenes/world_origin.gd" id="3_1mgjc"]
+[ext_resource type="Script" uid="uid://divavnkqowv7f" path="res://scripts/astro_rigidbody.gd" id="4_vdu5x"]
+[ext_resource type="PackedScene" uid="uid://dswp1l3t7voox" path="res://scenes/player.tscn" id="5_c3lf6"]
+[ext_resource type="Texture2D" uid="uid://18krst7ow0qk" path="res://assets/moon_4k.jpg" id="5_uuauy"]
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_1mgjc"]
+load_path = "res://.godot/imported/ESO_-_Milky_Way.jpg-fdd11bb536bd3c3020718a297be542e4.s3tc.ctex"
+
+[sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_hvjwa"]
+panorama = SubResource("CompressedTexture2D_1mgjc")
+energy_multiplier = 0.2
+
+[sub_resource type="Sky" id="Sky_c3lf6"]
+sky_material = SubResource("PanoramaSkyMaterial_hvjwa")
+
+[sub_resource type="Environment" id="Environment_s71h3"]
+background_mode = 2
+background_energy_multiplier = 8.23
+sky = SubResource("Sky_c3lf6")
+ambient_light_color = Color(1, 1, 1, 1)
+glow_enabled = true
+
+[sub_resource type="SphereMesh" id="SphereMesh_hjb8m"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_r6c0r"]
+albedo_texture = ExtResource("5_uuauy")
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_t7663"]
+
+[node name="TestSystem" type="Node3D" unique_id=323298835 node_paths=PackedStringArray("player", "world_origin", "map_camera", "map_camera_origin")]
+script = ExtResource("1_vdu5x")
+player = NodePath("WorldOrigin/Player")
+world_origin = NodePath("WorldOrigin")
+map_camera = NodePath("MapCameraOrigin/MapCamera")
+map_camera_origin = NodePath("MapCameraOrigin")
+
+[node name="Skybox" type="WorldEnvironment" parent="." unique_id=1475060691]
+environment = SubResource("Environment_s71h3")
+
+[node name="MapCameraOrigin" type="Marker3D" parent="." unique_id=343246540]
+transform = Transform3D(1, 0, 0, 0, 0.9999997, 0, 0, 0, 0.9999997, -16.210337, 1429.7798, -3145.423)
+
+[node name="MapCamera" type="Camera3D" parent="MapCameraOrigin" unique_id=1733701076]
+transform = Transform3D(-4.371139e-08, 1, 4.371139e-08, 0, -4.371139e-08, 1, 1, 4.371139e-08, 1.9106855e-15, 0, 0, 0)
+fov = 100.0
+far = 100000.0
+
+[node name="WorldOrigin" type="Node3D" parent="." unique_id=1496961808 node_paths=PackedStringArray("reference_body")]
+script = ExtResource("3_1mgjc")
+reference_body = NodePath("Player")
+
+[node name="Player" parent="WorldOrigin" unique_id=1916186712 instance=ExtResource("5_c3lf6")]
+top_level = true
+walk_speed = 10.0
+walk_acceleration = 15.0
+thrust_strength = 5.0
+jump_strength = 5.0
+
+[node name="AstroRigidBody" type="RigidBody3D" parent="WorldOrigin" unique_id=1561007644]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -3.0020766)
+mass = 100.0
+script = ExtResource("4_vdu5x")
+metadata/_custom_type_script = "uid://divavnkqowv7f"
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="WorldOrigin/AstroRigidBody" unique_id=1490609591]
+mesh = SubResource("SphereMesh_hjb8m")
+surface_material_override/0 = SubResource("StandardMaterial3D_r6c0r")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WorldOrigin/AstroRigidBody" unique_id=1472231595]
+shape = SubResource("SphereShape3D_t7663")
+
+[connection signal="map_opened" from="WorldOrigin/Player" to="." method="_on_player_map_opened"]
+[connection signal="spawn_point_set" from="WorldOrigin/Player" to="." method="_on_player_spawn_point_set"]

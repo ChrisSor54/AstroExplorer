@@ -1,6 +1,7 @@
 @tool
-extends Node3D
 class_name StarSystem
+extends Node3D
+
 
 
 const G: float = 1.0
@@ -25,7 +26,8 @@ func _ready() -> void:
 		for node in world_origin.get_children():
 			if node is AstroBody:
 				bodies.append(node)
-			elif node is RigidBody3D:
+			elif node is AstroRigidBody:
+				print(node.name)
 				rigid_bodies.append(node)
 
 

@@ -18,10 +18,10 @@ height = 1.3227539
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_lfxu0"]
 margin = 0.02
-radius = 0.2685547
+radius = 0.4
 
 [node name="Player" type="RigidBody3D" unique_id=1916186712 node_paths=PackedStringArray("collision_shape", "ground_raycast", "camera_pivot", "camera")]
-mass = 7.0
+mass = 70.0
 physics_material_override = SubResource("PhysicsMaterial_choun")
 can_sleep = false
 lock_rotation = true
@@ -38,6 +38,7 @@ camera = NodePath("CameraPivot/Camera3D")
 
 [node name="Head" type="MeshInstance3D" parent="Mesh" unique_id=65948235]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6986094, 0)
+layers = 6
 mesh = SubResource("SphereMesh_lfxu0")
 surface_material_override/0 = ExtResource("2_g2els")
 
@@ -61,10 +62,10 @@ target_position = Vector3(0, -0.2, 0)
 hit_from_inside = true
 
 [node name="CameraPivot" type="Node3D" parent="." unique_id=72778139]
-transform = Transform3D(1, 0, 0, 0, 0.99999994, 0, 0, 0, 0.99999994, 0, 0.7206911, -0.3823272)
+transform = Transform3D(1, 0, 0, 0, 0.99999994, 0, 0, 0, 0.99999994, 0, 0.7206911, -0.24854833)
 
 [node name="FlashlightRemoteTransform" type="RemoteTransform3D" parent="CameraPivot" unique_id=1454116476]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3867213, -0.55643666, 0)
+transform = Transform3D(1, 0, 0, 0, 0.9999999, 0, 0, 0, 0.9999999, 0.3867213, -0.55643654, -0.13304454)
 remote_path = NodePath("../../Flashlight")
 update_position = false
 update_scale = false
