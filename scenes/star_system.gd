@@ -19,6 +19,8 @@ const G: float = 1.0
 var bodies: Array[OrbitalBody]
 var rigid_bodies: Array[AstroRigidBody]
 
+@export_tool_button("Validate Orbits", "Trackball")
+var validate_orbits_button: Callable = validate_orbits
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -85,12 +87,23 @@ func _on_player_map_opened(is_open: bool, target_position: Vector3 = Vector3.ZER
 
 func _on_player_spawn_point_set() -> void:
 	if player.spawn_point == null: return
+	if !player.spawn_point.is_inside_tree():
+		player.spawn_point = null
+		return
 	var home_planet: AstroBody = player.spawn_point.get_parent()
 	player.global_position = player.spawn_point.global_position
 	player.global_rotation = player.spawn_point.global_rotation
 	player.linear_velocity = home_planet.linear_velocity + home_planet.get_surface_velocity_from(player.spawn_point.global_position)
 
-	#for node in world_origin.get_children():
-		#print("REPOSITIONING")
-		#if node != player:
-			#node.global_transform.origin -= 2*new_position
+
+func validate_orbits():
+	for body in bodies:
+		if body.parent_body:
+			if !body.parent_body.child_bodies:
+				body.parent_body.child_bodies = {}
+			body.parent_body.child_bodies[body] = true
+		if body.child_bodies:
+			body.validate_child_bodies()
+	if player and player.spawn_point:
+		if !player.spawn_point.is_in_tree():
+			player.spawn_point = null

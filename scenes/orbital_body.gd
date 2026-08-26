@@ -8,8 +8,8 @@ extends AstroBody
 @export
 var body_name: String
 
-@export
-var body_radius: float = 1.0: 
+@export_custom(PROPERTY_HINT_NONE, "suffix:m")
+var surface_height: float = 1.0: 
 	set(new_radius):
 		radius = new_radius
 		if collision_shape and mesh:
@@ -19,14 +19,14 @@ var body_radius: float = 1.0:
 		calculate_mass()
 	get(): return radius
 
-@export
+@export_custom(PROPERTY_HINT_NONE, "suffix:m/s²")
 var surface_gravity: float = 1.0:
 	set(new_gravity):
 		surface_gravity = new_gravity
 		calculate_mass()
 		
 
-@export_custom(PROPERTY_HINT_NONE, "suffix:seconds")
+@export_custom(PROPERTY_HINT_NONE, "suffix:s")
 var rotational_period: float = 0.0:
 	set(new_val):
 		rotational_period = new_val
@@ -49,6 +49,7 @@ var rotational_period: float = 0.0:
 @export var orbit: Orbit:
 	set(new_orbit):
 		if orbit != null and orbit.changed.is_connected(update_orbit):
+			_parent_body = null
 			orbit.changed.disconnect(update_orbit)
 		orbit = new_orbit
 		if orbit != null:
@@ -79,18 +80,15 @@ var parent_body: OrbitalBody:
 		else:
 			return null
 
-@export_tool_button("Recalculate Orbit", "Environment")
+
+@export_tool_button("Recalculate Orbit", "Trackball")
 var recalculate_orbit_button: Callable = recalculate_orbit
-func recalculate_orbit():
-		if parent_body == null or orbit == null:
-				return
-		var relative_position = global_position - parent_body.global_position
-		var relative_velocity = linear_velocity - parent_body.linear_velocity
-		var gravitational_parameter = G*parent_body.mass
-		orbit.recalculate_orbital_properties(relative_position, relative_velocity, gravitational_parameter)
 
 @export
 var child_bodies: Dictionary[OrbitalBody, bool] = {}
+
+@export_tool_button("Validate Child Bodies", "Environment")
+var validate_child_bodies_button: Callable = validate_child_bodies
 
 
 
@@ -115,7 +113,7 @@ func _notification(what: int) -> void:
 				var original_position = orbit.get_position()
 				if global_position != original_position:
 					orbit._ignore_update = true
-					update_orbital_properties()
+					update_orbital_properties_from_translation()
 					orbit._ignore_update = false
 					linear_velocity = orbit.get_orbital_velocity(G*parent_body.mass)
 
@@ -124,7 +122,9 @@ func _notification(what: int) -> void:
 				child.update_orbit()
 				#update_orbit()
 
-
+func _exit_tree() -> void:
+	_parent_body = null
+	
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
@@ -236,11 +236,26 @@ func update_orbit():
 		child_body.update_orbit()
 		
 	
+func recalculate_orbit():
+		if orbit == null or parent_body == null:
+				return
+		var relative_position = global_position - parent_body.global_position
+		var relative_velocity = linear_velocity - parent_body.linear_velocity
+		var gravitational_parameter = G*parent_body.mass
+		orbit.recalculate_orbital_properties(relative_position, relative_velocity, gravitational_parameter)
 
-func calculate_orbit():
-	if parent_body == null:
-		return
-	
+
+func validate_child_bodies():
+	for child_body in child_bodies:
+		if !child_body or child_body.parent_body != self:
+			child_bodies.erase(child_body)
+
+func clear_child_bodies():
+	for child_body in child_bodies:
+		if child_body and child_body.parent_body == self:
+			child_body.parent_body = null
+			child_bodies.erase(child_body)
+
 
 @onready var ascending_texture = preload("res://assets/normal.png")
 @onready var descending_texture = preload("res://assets/anti_normal.png")
@@ -316,7 +331,7 @@ func generate_orbital_path_visualization(num_points: int = 360):
 		sprite.global_position = marker_data[marker_name][1] + orbit_origin
 
 
-func update_orbital_properties():
+func update_orbital_properties_from_translation():
 	var relative_position = global_position - parent_body.global_position
 	var r = relative_position.length()
 	if r == 0:

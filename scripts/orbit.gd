@@ -41,7 +41,7 @@ var _synchronous: bool = false
 var apoapsis: float = semi_major_axis*(1 + _eccentricity)
 var periapsis: float = semi_major_axis*(1 - _eccentricity)
 
-@export_tool_button("Apply Orbit", "Environment")
+@export_tool_button("Apply Orbit", "Trackball")
 var apply_orbit: Callable = emit_changed
 
 @export_node_path("OrbitalBody")
