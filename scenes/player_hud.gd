@@ -22,6 +22,11 @@ func _process(delta: float) -> void:
 	else:
 		var relative_velocity = Vector3.ZERO
 		if player.is_grounded:
-			var surface_velocity = player._ground.linear_velocity + player._ground.get_surface_velocity_from(player.ground_raycast.get_collision_point())
+			var surface_velocity = player._ground.linear_velocity
+			if player._ground is AstroBody:
+				surface_velocity += player._ground.get_surface_velocity_from(player.ground_raycast.get_collision_point())
 			relative_velocity = player.linear_velocity - surface_velocity
-		debug_label.text = "Not stuck" + str(relative_velocity)
+			debug_label.text = "Not stuck" + str(relative_velocity) + ", " + str(relative_velocity.length())
+		else:
+			debug_label.text = "Not grounded"
+			

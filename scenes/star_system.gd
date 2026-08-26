@@ -2,6 +2,9 @@
 extends Node3D
 class_name StarSystem
 
+
+const G: float = 1.0
+
 @export var n_body_enabled: bool = false
 
 @export_group("Nodes")
@@ -11,98 +14,59 @@ class_name StarSystem
 @export var map_camera_origin: Marker3D
 @export_group("")
 
-var bodies: Array[GravBody]
-var rigid_bodies: Array[RigidBody3D]
+@export var pause_in_editor: bool = false
+var bodies: Array[OrbitalBody]
+var rigid_bodies: Array[AstroRigidBody]
 
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	if !Engine.is_editor_hint():
 		for node in world_origin.get_children():
-			if node is GravBody:
+			if node is AstroBody:
 				bodies.append(node)
-				node.init()
 			elif node is RigidBody3D:
 				rigid_bodies.append(node)
-		
-		
-	#if player:
-		#player.apply_central_force($WorldOrigin/Planet.linear_velocity*player.mass)
-		#player.teleport_to_body($WorldOrigin/Planet)
-		#float_origin(player.global_position)
-		#update_relative_velocities(player.linear_velocity)
-		#player.linear_velocity = $WorldOrigin/Planet.linear_velocity
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
-	if Engine.is_editor_hint():
+	if Engine.is_editor_hint() and !pause_in_editor:
 		if player:
 			#update_relative_velocities(player.linear_velocity)
 			if player.spawn_point and player.global_position != player.spawn_point.global_position:
 				_on_player_spawn_point_set()
-			float_origin(player.global_position)
+
 
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint(): return
-	
-	# Floating Origin
-	if player:
-		var reference_velocity = player.linear_velocity
-		update_relative_velocities(reference_velocity)
-		float_origin(player.global_position)
-	apply_gravity(delta)
+	process_gravity(delta)
 
 
-func apply_gravity(delta: float) -> void:
-	for node in world_origin.get_children():
-		if node is Player:
-			node.parent_body = null
-			node.parent_gravity = Vector3.ZERO
-			node._current_grav_vector = node.get_gravity()
+func process_gravity(delta: float) -> void:
+	var world_nodes = world_origin.get_children()
+	for node in world_nodes:
+		node._on_new_frame()
 	
 	for body in bodies:
 		if !body.enabled: continue
-		var grav_vector = Vector3.ZERO
+		var gravity_vector = Vector3.ZERO
 		if n_body_enabled: # N-Body system
 			for other_body in bodies:
 				if !other_body.enabled: continue
 				if body == other_body: continue
-				grav_vector += other_body.get_gravity_vector_between(body)
+				gravity_vector += other_body.get_gravity_vector_between(body)
 		else: # 2-Body system
 			var parent_body = body.parent_body
 			if parent_body != null and parent_body.enabled:
-				grav_vector = parent_body.get_gravity_vector_between(body)
-				while parent_body.parent_body != null and parent_body.parent_body.enabled:
-					grav_vector += parent_body.parent_body.get_gravity_vector_between(parent_body)*(body.mass/parent_body.mass)
-					parent_body = parent_body.parent_body
-		body.apply_force(grav_vector)
-			
+				gravity_vector = parent_body.get_gravity_vector_between(body)
+				body._linear_acceleration += parent_body._current_gravitational_acceleration
+		body.apply_gravitational_force(gravity_vector)
 		for node in rigid_bodies:
-			grav_vector = body.get_gravity_vector_from(node.global_position, node.mass)
-			if node is Player:
-				#var scaled_grav = body.get_gravity_vector_from(node.global_position, node.mass, 3)
-				if body.global_position.distance_to(node.global_position) <= (body.radius/2) and node.parent_gravity == Vector3.ZERO \
-				or body.global_position.distance_to(node.global_position) <= 2*body.radius and grav_vector.length_squared() > node.parent_gravity.length_squared():
-					node.parent_body = body
-					node.parent_gravity = grav_vector
-					node._current_grav_vector += grav_vector
-					#print((grav_vector/player.mass).length())
-				
-			node.apply_central_force(grav_vector)
-			
-			#apply_force_to_player(grav_vector)
-			#print(player.global_position)
-	
-
-func update_relative_velocities(offset_velocity):
-	for node in world_origin.get_children():
-		node.linear_velocity -= offset_velocity
+			gravity_vector = body.get_gravity_vector_from(node.global_position, node.mass)
+			node.apply_gravitational_force(body, gravity_vector)
 
 
-func float_origin(offset: Vector3):
-	if offset != Vector3.ZERO:
-		world_origin.global_transform.origin -= offset
 
 
 func _on_player_map_opened(is_open: bool, target_position: Vector3 = Vector3.ZERO, camera_distance: float = 2000) -> void:
@@ -119,7 +83,12 @@ func _on_player_map_opened(is_open: bool, target_position: Vector3 = Vector3.ZER
 
 func _on_player_spawn_point_set() -> void:
 	if player.spawn_point == null: return
-	var home_planet: GravBody = player.spawn_point.get_parent()
+	var home_planet: AstroBody = player.spawn_point.get_parent()
 	player.global_position = player.spawn_point.global_position
 	player.global_rotation = player.spawn_point.global_rotation
 	player.linear_velocity = home_planet.linear_velocity + home_planet.get_surface_velocity_from(player.spawn_point.global_position)
+
+	#for node in world_origin.get_children():
+		#print("REPOSITIONING")
+		#if node != player:
+			#node.global_transform.origin -= 2*new_position

@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="PlanetExplorer"
+config/name="AstroExplorer"
 run/main_scene="uid://d2522tb5vji20"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"

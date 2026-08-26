@@ -1,4 +1,4 @@
-extends RigidBody3D
+extends AstroRigidBody
 class_name Player
 
 const MAX_GROUNDED_MOVE_SPEED: float = 15.0
@@ -18,7 +18,6 @@ const ZERO_G_THRESHOLD: float = 0.2**2
 @export var ground_raycast: RayCast3D
 @export var camera_pivot: Node3D
 @export var camera: Camera3D
-@export var grounded_counter_spin: Marker3D
 @export_group("")
 
 @export var spawn_point: Marker3D:
@@ -30,15 +29,10 @@ signal spawn_point_set
 var is_grounded: bool = false
 var in_zero_G: bool = false
 
-var parent_body: GravBody
-var parent_gravity: Vector3 = Vector3.ZERO
-
-var _ground: GravBody
-var _strongest_gravity: Vector3 = Vector3.ZERO
-
-var _current_grav_vector: Vector3 = Vector3.ZERO
-var _surface_position: Vector3 = Vector3.ZERO
+var _ground: PhysicsBody3D = null
 var _is_stuck_to_surface: bool = false
+var _surface_position: Vector3 = Vector3.ZERO
+var _is_jumping: bool = false
 var _lock_relative_camera_rotation: bool = false
 var _is_reorienting: bool = false
 var _mouselook_enabled = false:
@@ -104,17 +98,12 @@ func _physics_process(delta: float) -> void:
 	
 	if ground_raycast.is_colliding():
 		var up_vector = (global_position - _ground.global_position).normalized()
-		if linear_velocity.dot(up_vector) <= 0.2:
-			if !is_grounded:
-				var relative_velocity = linear_velocity - _ground.linear_velocity
-				var upwards_relative_velocity = relative_velocity.project(up_vector)
-				if upwards_relative_velocity.length_squared() <= 0.2**2:
-					print(upwards_relative_velocity.length())
-					linear_velocity -= upwards_relative_velocity
-		#global_position += (ground_raycast.global_position - ground_raycast.get_collision_point())
-			is_grounded = true
-		else:
-			is_grounded = false
+		#if linear_velocity.dot(up_vector) <= 0.2:
+		##global_position += (ground_raycast.global_position - ground_raycast.get_collision_point())
+			#is_grounded = true
+		#else:
+			#is_grounded = false
+		is_grounded = true
 	else:
 		#if is_grounded:
 			#_is_reorienting = true
@@ -124,7 +113,6 @@ func _physics_process(delta: float) -> void:
 	_process_movement_input(delta)
 	#update_linear_velocity.emit(linear_velocity)
 	#linear_velocity = Vector3.ZERO
-
 
 
 func _process_movement_input(delta: float) -> void:
@@ -146,31 +134,31 @@ func _process_movement_input(delta: float) -> void:
 
 	var move_vector = Vector3.ZERO
 	if is_grounded:
+		up_vector = (global_position - parent_body.global_position).normalized()
+		if input_vector != Vector3.ZERO:
+			input_vector = input_vector.normalized()
 		var is_jumping = Input.is_action_just_pressed("jump")
 		if is_jumping:
 			var impulse_vector = jump_strength*up_vector
-			#move_vector = up_vector
-			#linear_velocity += impulse_vector/mass
-			apply_central_impulse(impulse_vector)
+			apply_impulse(impulse_vector)
 			_is_stuck_to_surface = false
 			is_grounded = false
-		#if (ground_raycast.global_position - ground_raycast.get_collision_point() )
-		#print(_ground.angular_velocity)
 		
-		#angular_damp = 100
+
 		if !_ignore_spin:
-			angular_damp = 0.0
-			angular_velocity += _ground.angular_velocity.project(up_vector)
-		#r = r.normalized()*(r.length() + radius)
-		var surface_velocity = _ground.linear_velocity + _ground.get_surface_velocity_from(ground_raycast.get_collision_point())
+			global_rotate(up_vector, _ground.angular_velocity.dot(up_vector)*delta)
+			#angular_velocity +=  _ground.angular_velocity.project(up_vector)
+			
+		var surface_velocity = _ground.linear_velocity
+		if _ground is AstroBody:
+			surface_velocity += _ground.get_surface_velocity_from(ground_raycast.get_collision_point())
 		var relative_velocity = linear_velocity - surface_velocity
 		var upwards_relative_velocity = relative_velocity.project(up_vector)
 		var surface_relative_velocity = relative_velocity - upwards_relative_velocity
 		#relative_velocity -= upwards_relative_velocity
-		var forward_speed = relative_velocity.dot(input_vector)
+		var forward_speed = surface_relative_velocity.dot(input_vector)
 		var target_force = max(walk_speed-forward_speed, 0)
 		if input_vector != Vector3.ZERO:
-			input_vector = input_vector.normalized()
 			move_vector = input_vector*(target_force*walk_acceleration*mass)
 			#if relative_velocity.length_squared() <= 0.2:
 				#move_vector = Vector3.ZERO
@@ -181,27 +169,30 @@ func _process_movement_input(delta: float) -> void:
 			_is_stuck_to_surface = false
 		else:
 			if !is_jumping and relative_velocity.length_squared() <= 0.2:
-				if _is_stuck_to_surface:
-					global_position = _ground.to_global(_surface_position)
+				# Check for overlap before getting surface position
+				if get_overlap_with_ground() < 0.01:
+					if _is_stuck_to_surface:
+						global_position = _ground.to_global(_surface_position)
+					else:
+						_is_stuck_to_surface = true
+						var ground_offset = (ground_raycast.global_position - ground_raycast.get_collision_point()).dot(up_vector)
+						_surface_position = _ground.to_local(global_position)
+					linear_velocity = surface_velocity
 				else:
-					_is_stuck_to_surface = true
-					var ground_offset = (ground_raycast.global_position - ground_raycast.get_collision_point()).dot(up_vector)
-					_surface_position = _ground.to_local(global_position)
-				linear_velocity = surface_velocity
+					_is_stuck_to_surface = false
 			else:
 				_is_stuck_to_surface = false
-		if !_is_stuck_to_surface and !is_jumping:
-			var deceleration_speed = relative_velocity.length()*mass
-			move_vector -= (surface_relative_velocity.normalized() - input_vector)*deceleration_speed*mass
+		if !is_jumping:
+			var deceleration_speed = surface_relative_velocity.length()*mass*mass
+			move_vector -= (surface_relative_velocity.normalized()-input_vector)*deceleration_speed
 		#if relative_velocity.length() != 0: print(relative_velocity.length())
 	else:
 		if input_vector != Vector3.ZERO:
-			input_vector = input_vector.normalized()
-			move_vector = input_vector.normalized()*thrust_strength
+			move_vector = input_vector*thrust_strength
 	if move_vector != Vector3.ZERO:
 		apply_central_force(move_vector)
 	if rotation_axis != 0:
-		angular_velocity += forward_vector*rotation_axis*thrust_strength*delta
+		global_rotation += forward_vector*rotation_axis*thrust_strength*delta*delta
 
 
 func _process_look_input(delta: float) -> void:
@@ -214,7 +205,7 @@ func _process_look_input(delta: float) -> void:
 		camera_pivot.rotation.x = clamp(camera_pivot.rotation.x, deg_to_rad(-CAMERA_ANGLE_LIMIT), deg_to_rad(CAMERA_ANGLE_LIMIT))
 		#else:
 			#angular_velocity += left_vector*(_mouse_delta.y*_mouse_sensitivity)/delta
-		angular_velocity += up_vector*(_mouse_delta.x*_mouse_sensitivity)/delta
+		global_rotate(up_vector, _mouse_delta.x*_mouse_sensitivity)
 	_mouse_delta = Vector2.ZERO
 
 
@@ -224,10 +215,9 @@ func _process_orientation(delta: float) -> void:
 	if is_grounded or !in_zero_G:
 		#var target = _ground if is_grounded else parent_body
 		var target = parent_body
-		#var up_vector = (global_position - target.global_position).normalized()
-		var up_vector = -_current_grav_vector.normalized()
+		var up_vector = (global_position - target.global_position).normalized()
+		#var up_vector = -parent_gravity.normalized()
 		if get_gravity() != Vector3.ZERO:
-			print("custom gravity")
 			up_vector = -get_gravity().normalized()
 		var current_quat = global_transform.basis.get_rotation_quaternion()
 		var target_quat = (Quaternion(global_transform.basis.y, up_vector) * current_quat).normalized()
@@ -263,7 +253,15 @@ func _process_orientation(delta: float) -> void:
 		var rotation_delta = Quaternion(left_vector, pitch_to_transfer)
 		global_transform.basis = Basis(rotation_delta * global_transform.basis.get_rotation_quaternion())
 
-func teleport_to_body(target_body: GravBody) -> void:
-	var body_forward_vector = -target_body.transform.basis.z.normalized()
-	global_position = target_body.global_position + body_forward_vector*(target_body.radius + 5)
-	linear_velocity = target_body.linear_velocity + target_body.get_surface_velocity_from(global_position)
+
+func get_overlap_with_ground():
+	if _ground == null:
+		return 0.0
+	var params = PhysicsTestMotionParameters3D.new()
+	params.from = global_transform
+	params.motion = Vector3.ZERO
+	var result = PhysicsTestMotionResult3D.new()
+	if PhysicsServer3D.body_test_motion(get_rid(), params, result):
+		if result.get_collider_rid() == _ground.get_rid():
+			return result.get_collision_depth()
+	return 0.0
