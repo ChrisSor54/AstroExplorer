@@ -6,7 +6,9 @@ extends Node3D
 
 const G: float = 1.0
 
-@export var n_body_enabled: bool = false
+@export var enable_n_body_calculations: bool = false
+@export var enable_symmetrical_gravitational_forces: bool = false
+@export var rigidbodies_produce_gravity: bool = false
 
 @export_group("Nodes")
 @export var player: Player
@@ -28,6 +30,7 @@ func _ready() -> void:
 		for node in world_origin.get_children():
 			if node is AstroBody:
 				bodies.append(node)
+				node.show_orbit = !enable_n_body_calculations
 			elif node is AstroRigidBody:
 				print(node.name)
 				rigid_bodies.append(node)
@@ -52,23 +55,38 @@ func process_gravity(delta: float) -> void:
 	for node in world_nodes:
 		node._on_new_frame()
 	
-	for body in bodies:
-		if !body.enabled: continue
-		var gravity_vector = Vector3.ZERO
-		if n_body_enabled: # N-Body system
-			for other_body in bodies:
-				if !other_body.enabled: continue
+	if enable_n_body_calculations:
+		var source_bodies = world_nodes if rigidbodies_produce_gravity else bodies
+		for body in world_nodes:
+			if body is not AstroBody and body is not AstroRigidBody: continue
+			if body is AstroBody and !body.enabled: continue
+			for other_body in source_bodies:
 				if body == other_body: continue
-				gravity_vector += other_body.get_gravity_vector_between(body)
-		else: # 2-Body system
+				if other_body is not AstroBody and other_body is not AstroRigidBody: continue
+				if other_body is AstroBody and !other_body.enabled: continue
+				var gravity_vector = other_body.get_gravity_between_body(body)
+				if body is AstroBody:
+					body.apply_gravitational_force(gravity_vector)
+				if body is AstroRigidBody:
+					body.apply_gravitational_force(other_body, gravity_vector)
+	else:
+		for body in bodies:
+			if !body.enabled: continue
 			var parent_body = body.parent_body
 			if parent_body != null and parent_body.enabled:
-				gravity_vector = parent_body.get_gravity_vector_between(body)
-				body._linear_acceleration += parent_body._current_gravitational_acceleration
-		body.apply_gravitational_force(gravity_vector)
-		for node in rigid_bodies:
-			gravity_vector = body.get_gravity_vector_from(node.global_position, node.mass)
-			node.apply_gravitational_force(body, gravity_vector)
+				var gravity_vector = parent_body.get_gravity_between_body(body)
+				var current_body = parent_body
+				while current_body.parent_body != null:
+					gravity_vector += current_body.parent_body.get_gravity_between_body(current_body)*(body.mass/current_body.mass)
+					current_body = current_body.parent_body
+				body.apply_gravitational_force(gravity_vector)
+				if enable_symmetrical_gravitational_forces:
+					parent_body.apply_gravitational_force(-gravity_vector)
+			for node in rigid_bodies:
+				var gravity_vector = body.get_gravity_between_body(node)
+				node.apply_gravitational_force(body, gravity_vector)
+				if rigidbodies_produce_gravity:
+					body.apply_gravitational_force(-gravity_vector)
 
 
 
@@ -78,8 +96,7 @@ func _on_player_map_opened(is_open: bool, target_position: Vector3 = Vector3.ZER
 		map_camera.current = true
 		var camera_forward = -map_camera.global_transform.basis.z.normalized()
 		#print("Target: ", target_position, ", Origin: ", map_camera_origin.global_position, ", Position: ", map_camera.position)
-		print(camera_forward)
-		map_camera.global_position = map_camera_origin.global_position - camera_forward*camera_distance
+		map_camera.global_position = map_camera_origin.global_position - camera_forward*(camera_distance)
 	else:
 		map_camera.current = false
 		map_camera.position = Vector3.ZERO
@@ -90,7 +107,7 @@ func _on_player_spawn_point_set() -> void:
 	if !player.spawn_point.is_inside_tree():
 		player.spawn_point = null
 		return
-	var home_planet: AstroBody = player.spawn_point.get_parent()
+	var home_planet: OrbitalBody = player.spawn_point.get_parent()
 	player.global_position = player.spawn_point.global_position
 	player.global_rotation = player.spawn_point.global_rotation
 	player.linear_velocity = home_planet.linear_velocity + home_planet.get_surface_velocity_from(player.spawn_point.global_position)
@@ -105,5 +122,9 @@ func validate_orbits():
 		if body.child_bodies:
 			body.validate_child_bodies()
 	if player and player.spawn_point:
-		if !player.spawn_point.is_in_tree():
+		var spawn_point: Marker3D = player.spawn_point
+		if !spawn_point.is_inside_tree():
 			player.spawn_point = null
+
+	
+	

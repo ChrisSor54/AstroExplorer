@@ -16,7 +16,8 @@ func _ready() -> void:
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
-	gravity_label.text = str(player.parent_gravity.length()/player.mass).pad_decimals(2)
+	var up_vector = player.global_transform.basis.y.normalized()
+	gravity_label.text = str(player._current_gravity.project(-up_vector).length()/player.mass).pad_decimals(2)
 	if player._is_stuck_to_surface:
 		debug_label.text = "Stuck to surface"
 	else:

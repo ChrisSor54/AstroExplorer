@@ -3,6 +3,7 @@ class_name Orbit
 extends Resource
 
 var _ignore_update: bool = false
+var _owner_mass: float = 1.0
 
 var _semi_major_axis: float = 0.0:
 	set(val):
@@ -38,6 +39,7 @@ var _longitude_of_ascending_node: float = 0.0:
 			_longitude_of_ascending_node = wrapf(val, -PI, PI)
 var _tidally_locked: bool = false
 var _synchronous: bool = false
+var _relative_to_barycenter: bool = false
 var apoapsis: float = semi_major_axis*(1 + _eccentricity)
 var periapsis: float = semi_major_axis*(1 - _eccentricity)
 
@@ -55,7 +57,8 @@ var semi_major_axis: float = 0.0:
 	set(val):
 		_semi_major_axis = val
 		if !_ignore_update: emit_changed()
-	get(): return _semi_major_axis
+	get(): 
+		return _semi_major_axis
 
 @export_range(0.0, 0.99, 0.01)
 var eccentricity: float:
@@ -106,6 +109,12 @@ var true_anomaly: float = 0:
 		if !_ignore_update: emit_changed()
 	get(): return _synchronous
 
+var relative_to_barycenter: bool:
+	set(val):
+		_relative_to_barycenter = val
+		if !_ignore_update: emit_changed()
+	get(): return _relative_to_barycenter
+
 
 
 func get_orbital_plane_normal() -> Vector3:
@@ -116,14 +125,16 @@ func get_orbital_plane_normal() -> Vector3:
 	return Vector3(-cos_om*sin_i, cos_i, sin_om*sin_i)
 
 
-func get_position() -> Vector3:
-	return get_position_at_true_anomaly(true_anomaly)
+func get_position(focal_distance_scalar: float = 0) -> Vector3:
+	return get_position_at_true_anomaly(true_anomaly, focal_distance_scalar)
 
-func get_position_at_true_anomaly(true_anomaly: float) -> Vector3:
-	if eccentricity >= 1:
+func get_position_at_true_anomaly(true_anomaly: float, focal_distance_scalar: float = 0) -> Vector3:
+	#print("True anomaly: ", rad_to_deg(true_anomaly))
+	focal_distance_scalar = clampf(focal_distance_scalar, 0.0, 1.0)
+	#print(focal_distance_scalar)
+	if eccentricity >= 1 or is_equal_approx(focal_distance_scalar, 1.0):
 		return Vector3(0,0,0)
-		
-	var r = semi_major_axis*(1 - eccentricity*eccentricity)/(1 + eccentricity*cos(true_anomaly)) # Distance
+	var r = (semi_major_axis*(1 - focal_distance_scalar))*(1 - eccentricity*eccentricity)/(1 + eccentricity*cos(true_anomaly)) # Distance
 	var x_orbit = r*cos(true_anomaly) # X along orbital plane
 	var y_orbit = r*sin(true_anomaly) # Y along orbital plane
 	
@@ -164,12 +175,17 @@ func get_orbital_velocity_at(true_anomaly: float, gravitational_parameter: float
 	return Vector3(x, y, z)
 
 
-func get_orbital_path(vertices: int = 360):
+func get_orbital_path(vertices: int = 360, focal_distance_scalar: float = 0.0, parent_path: bool = false):
+	focal_distance_scalar = clampf(focal_distance_scalar, 0.0, 1.0)
+	if parent_path:
+		focal_distance_scalar = 1 - focal_distance_scalar
 	var path: PackedVector3Array = []
 	var point_delta = 360/vertices
 	var point = 0
 	while point < 360:
-		var orbital_position = get_position_at_true_anomaly(deg_to_rad(point))
+		var orbital_position = get_position_at_true_anomaly(deg_to_rad(point), focal_distance_scalar)
+		if parent_path:
+			orbital_position *= -1.0
 		path.append(orbital_position)
 		point += point_delta
 	path.append(path[0])
@@ -190,47 +206,59 @@ func set_orbital_period(orbital_period: float, gravitational_parameter: float) -
 	semi_major_axis = get_sma_for_orbital_period(orbital_period, gravitational_parameter)
 
 
-func recalculate_orbital_properties(relative_position: Vector3, relative_velocity: Vector3, gravitational_parameter: float):
+
+static func generate_orbit(relative_position: Vector3, relative_velocity: Vector3, gravitational_parameter: float) -> Orbit:
+	var new_orbit = Orbit.new()
 	var distance = relative_position.length()
 	var r = relative_position
 	var v = relative_velocity
 	var v2 = v.length_squared()
 	var mu = gravitational_parameter
 	if v.length() >= Orbit.get_escape_velocity_at_distance(distance, mu) or v2 == 0:
-		print(v2, ", ", Orbit.get_escape_velocity_at_distance(distance, mu))
-		parent_body = ""
-		return
-	
-	_ignore_update = true
+		#print(v2, ", ", Orbit.get_escape_velocity_at_distance(distance, mu))
+		print("On escape trajectory")
+		return null
+		
 	var h = r.cross(v)
 	if h.length_squared() == 0:
-		parent_body = ""
-		return
+		print("No tangential movement")
+		return null
 
 	var n = Vector3(0,1,0).cross(h)
 	var e = (1/mu)*((v2 - mu/distance)*r - (r.dot(v))*v)
 	var energy = v2/2 - mu/distance
 
-	eccentricity = e.length()
-	semi_major_axis = -mu/(2*energy)
-	inclination = acos(clamp(h.y/h.length(), -1, 1))
-	longitude_of_ascending_node = atan2(n.x, n.z)
+	new_orbit.eccentricity = e.length()
+	new_orbit.semi_major_axis = -mu/(2*energy)
+	new_orbit.inclination = acos(clamp(h.y/h.length(), -1, 1))
+	new_orbit.longitude_of_ascending_node = atan2(n.x, n.z)
 	#_argument_of_periapsis = atan2(n.cross(e).dot(h.normalized()), n.dot(e))
 	#_true_anomaly = atan2(e.cross(r).dot(h.normalized()), e.dot(r))
-	if eccentricity <= 0.01:
-		argument_of_periapsis = 0.0
+	if new_orbit.eccentricity <= 0.01:
+		new_orbit.argument_of_periapsis = 0.0
 		if n.length_squared() > 0:
-			true_anomaly = atan2(n.cross(r).dot(h.normalized()), n.dot(r))
+			new_orbit.true_anomaly = atan2(n.cross(r).dot(h.normalized()), n.dot(r))
 	else:
-		argument_of_periapsis = atan2(n.cross(e).dot(h.normalized()), n.dot(e))
-		true_anomaly = atan2(e.cross(r).dot(h.normalized()), e.dot(r))
-	_ignore_update = false
-	#print("eccentricity: ", eccentricity)
-	#print("inclination: ", rad_to_deg(inclination))
-	#print("longitude of ascending_node: ", rad_to_deg(longitude_of_ascending_node))
-	#print("argument of periapsis: ", rad_to_deg(argument_of_periapsis))
-	#print("true anomaly: ", rad_to_deg(true_anomaly))
+		new_orbit.argument_of_periapsis = atan2(n.cross(e).dot(h.normalized()), n.dot(e))
+		new_orbit.true_anomaly = atan2(e.cross(r).dot(h.normalized()), e.dot(r))
+	return new_orbit
 
+
+static func get_barycenter(body1_position: Vector3, body1_mass: float, body2_position: Vector3, body2_mass: float) -> Vector3:
+	var r = get_barycenter_distance_scalar(body1_mass, body2_mass)
+	var normal = (body1_position - body2_position)
+	return normal*r + body2_position
+
+static func get_distance_to_barycenter(body1_relative_position: Vector3, body1_mass: float, body2_mass: float) -> float:
+	var distance = body1_relative_position.length()
+	if is_zero_approx(distance):
+		return 0.0
+	var r = distance/(1 + (body1_mass/body2_mass))
+	return r
+	
+static func get_barycenter_distance_scalar(body1_mass: float, body2_mass: float) -> float:
+	var r = body1_mass/(body1_mass+body2_mass)
+	return r
 
 static func get_sma_for_orbital_period(orbital_period: float, gravitational_parameter: float) -> float:
 	var target_a3 = pow(orbital_period/(2*PI), 2)*gravitational_parameter

@@ -207,7 +207,7 @@ func _process_movement_input(delta: float) -> void:
 	if move_vector != Vector3.ZERO:
 		apply_central_force(move_vector)
 	if rotation_axis != 0:
-		global_rotation += forward_vector*rotation_axis*thrust_strength*delta
+		global_rotate(forward_vector, rotation_axis*thrust_strength*delta*delta)
 
 
 func _process_look_input(_delta: float) -> void:
