@@ -2,7 +2,14 @@
 class_name OrbitalBody
 extends AstroBody
 
-
+@export_group("Nodes")
+@export var collision_shape: CollisionShape3D
+@export var mesh: MeshInstance3D
+@export_subgroup("Orbital Visualization Nodes")
+@export var orbital_line_visualization: MeshInstance3D
+@export var gravity_well_visualization: MeshInstance3D
+@export var barycenter_visualization: Sprite3D
+@export_group("")
 
 
 @export
@@ -40,71 +47,13 @@ var rotational_period: float = 0.0:
 			var rotation_speed = 2*PI/rotational_period
 			angular_velocity = up_vector*rotation_speed
 
-@export_group("Nodes")
-@export var collision_shape: CollisionShape3D
-@export var mesh: MeshInstance3D
-@export_group("")
+@export_custom(PROPERTY_HINT_NONE, "suffix:m/s")
+var initial_linear_velocity: Vector3 = Vector3.ZERO
 
-
-
-
-@export var orbit: Orbit:
-	set(new_orbit):
-		if orbit != null and orbit.changed.is_connected(update_orbit):
-			_parent_body = null
-			orbit.changed.disconnect(update_orbit)
-		orbit = new_orbit
-		if orbit != null:
-			orbit.changed.connect(update_orbit)
-			orbit._owner_mass = mass
-			if !orbit.parent_body.is_empty():
-				update_orbit()
-
-@export var show_orbit: bool = true:
-	set(val):
-		show_orbit = val
-		var orbital_path = get_node_or_null("./OrbitalPath")
-		if orbital_path != null:
-			orbital_path.visible = show_orbit
-			for child in orbital_path.get_children():
-				child.visible = show_orbit
-
-# ONLY TO BE MODIFIED INTERNALLY
-var _parent_body: OrbitalBody:
-	set(new_parent):
-		if _parent_body and _parent_body.child_bodies:
-			_parent_body.child_bodies.erase(self)
-		_parent_body = new_parent
-		if _parent_body != null:
-			_parent_body.child_bodies[self] = true
-
-var parent_body: OrbitalBody:
-	set(new_parent):
-		if new_parent != null:
-			orbit.parent_body = new_parent.get_path()
-		else:
-			orbit = Orbit.new()
-
-	get():
-		if orbit:
-			return get_node_or_null(orbit.parent_body)
-		else:
-			return null
-
-
-#@export_tool_button("Recalculate Orbit", "Trackball")
-#var recalculate_orbit_button: Callable = recalculate_orbit
-
-@export
-var child_bodies: Dictionary[OrbitalBody, bool] = {}
-
-@export_tool_button("Validate Child Bodies", "Environment")
-var validate_child_bodies_button: Callable = validate_child_bodies
-
+var _initial_velocity_applied: bool = false
 
 
 #@export_custom(PROPERTY_HINT_NONE, "radians_as_degrees,suffix:°/s") var angular_velocity: Vector3 = Vector3.ZERO
-
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -115,7 +64,8 @@ func _ready() -> void:
 		collision_shape.shape.radius = radius
 		mesh.mesh.radius = radius
 		mesh.mesh.height = 2*radius
-	print(self.name, " initialized")
+	_initialize_orbital_visualization_meshes()
+	print_debug(name, " initialized")
 
 #func _notification(what: int) -> void:
 	#if Engine.is_editor_hint():
@@ -136,27 +86,34 @@ func _ready() -> void:
 				#child.update_orbit()
 				##update_orbit()
 
-func _exit_tree() -> void:
-	_parent_body = null
-	
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
-	pass
+	if orbit:
+		redraw_orbital_visualizations()
+	#if orbital_line_visualization:
+		#if parent_body and orbit:
+			#orbital_line_visualization.global_position = parent_body.global_position
+		#elif orbital_line_visualization:
+			#orbital_line_visualization.visible = false
+		
 	
 
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint(): return
 	if !enabled: return
+	if !_initial_velocity_applied:
+		linear_velocity += initial_linear_velocity
+		_initial_velocity_applied = false
 	super._physics_process(delta)
 	
-	var orbital_path = get_node_or_null("./OrbitalPath")
-	if orbital_path != null and orbit != null:
-		if orbit.relative_to_barycenter:
-			var barycenter = orbit.get_barycenter(global_position, mass, parent_body.global_position, parent_body.mass)
-			orbital_path.global_position = barycenter
-		else:
-			orbital_path.global_position = parent_body.global_position
+	
+	
+		#if orbit.relative_to_barycenter:
+			#var barycenter = orbit.get_barycenter(global_position, mass, parent_body.global_position, parent_body.mass)
+			#orbital_path.global_position = barycenter
+		#else:
+			#orbital_path.global_position = parent_body.global_position
 
 
 func get_surface_velocity_from(from_position: Vector3) -> Vector3:
@@ -168,51 +125,124 @@ func get_surface_velocity_from(from_position: Vector3) -> Vector3:
 
 func calculate_mass():
 	mass = max(surface_gravity*pow(radius, 2)/G, 0.01)
-	if orbit:
-		orbit._owner_mass = mass
 	for body in child_bodies:
 		body.update_orbit()
 
 
-
-
-
-
+func _exit_tree() -> void:
+	parent_body = null
 
 
 # Orbit ------------------------------------------------------------------------
 
-#func _on_orbit_parent_body_changed():
-	#var parent_body_node = get_node_or_null(orbit.parent_body)
-	#if parent_body_node and parent_body_node.child_bodies:
-			#parent_body_node.child_bodies.erase(self)
-		#_parent_body = new_parent
-		#if _parent_body != null:
-			#orbit.parent_body = _parent_body.get_path()
-			#_parent_body.child_bodies[self] = true
-		#else:
-			#orbit = Orbit.new()
+#region Orbital Properties
 
-func update_orbit():
-	if !enabled: return
-	if orbit != null:
-		var parent_body_node = get_node_or_null(orbit.parent_body)
-		if parent_body_node == self:
-			orbit._ignore_update = true
-			orbit.parent_body = ""
-			orbit._ignore_update = false
+const ORBITAL_STABILITY_COEFFICIENT: float = 0.5
+
+@export_category("Orbital Properties")
+@export var parent_body: OrbitalBody:
+	set(new_parent):
+		if new_parent == self:
 			push_error("Cannot set body as its own parent")
 			return
-		if _parent_body != parent_body_node:
-			_parent_body = parent_body_node
-		if parent_body_node == null or !parent_body_node.is_inside_tree():
+		if Engine.is_editor_hint(): print_debug("Setting new parent for ", name)
+		if parent_body and parent_body.child_bodies:
+			parent_body.child_bodies.erase(self)
+		parent_body = new_parent
+		if parent_body != null:
+			parent_body.child_bodies[self] = true
+
+			if orbit and is_inside_tree():
+				update_orbit()
+
+@export var orbit: Orbit:
+	set(new_orbit):
+		if orbit != null and orbit.changed.is_connected(update_orbit):
+			orbit.changed.disconnect(update_orbit)
+		orbit = new_orbit
+		if orbit != null:
+			set_meta("_edit_lock_", true) # Orbital bodies with an active orbit should only be positioned by their orbits
+			orbit.changed.connect(update_orbit)
+			if parent_body:
+				update_orbit()
+		else:
+			set_meta("_edit_lock_", false)
+
+@export
+var child_bodies: Dictionary[OrbitalBody, bool] = {}
+
+
+@export_tool_button("Refresh Orbit", "Trackball")
+var refresh_orbit: Callable = update_orbit
+
+@export_tool_button("Validate Child Bodies", "Environment")
+var validate_child_bodies_button: Callable = validate_child_bodies
+
+@export_tool_button("Recalculate Orbit", "Trackball")
+var recalculate_orbit_button: Callable = calculate_new_orbit
+
+func calculate_new_orbit():
+	if !Engine.is_editor_hint():
+		if  !_current_strongest_tidal_source:
+			orbit = null
 			return
-		print("Updating orbit for: ", name)
+		parent_body = _current_strongest_tidal_source
+	var relative_position = global_position - parent_body.global_position
+	var relative_velocity = linear_velocity - parent_body.linear_velocity
+	var gravitational_parameter = G*parent_body.mass
+	var new_orbit = Orbit.calculate_orbit(relative_position, relative_velocity, gravitational_parameter)
+	while !new_orbit:
+		if !parent_body.parent_body or parent_body.parent_body == self:
+			parent_body = null
+			orbit = null
+			return
+		parent_body = parent_body.parent_body
+		relative_position = global_position - parent_body.global_position
+		relative_velocity = linear_velocity - parent_body.linear_velocity
+		gravitational_parameter = G*parent_body.mass
+		new_orbit = Orbit.calculate_orbit(relative_position, relative_velocity, gravitational_parameter)
+	orbit = new_orbit
+
+
+#@export_tool_button("Calculate Orbit", "Trackball")
+#var calc_orbit_button: Callable = func():
+	#if !parent_body: return
+	#var r = global_position - parent_body.global_position
+	#var v = linear_velocity - parent_body.linear_velocity
+	#var new_orbit = Orbit.calculate_orbit(r, v, G*parent_body.mass)
+	#if new_orbit:
+		#print("\nCalculated Orbital Properties:\n",
+		#"\n  Semi Major Axis: ", new_orbit.semi_major_axis,
+		#"\n  Eccentricity: ", new_orbit.eccentricity,
+		#"\n  Inclination: ", rad_to_deg(new_orbit.inclination),
+		#"\n  Argument of Periapsis: ", rad_to_deg(new_orbit.argument_of_periapsis),
+		#"\n  Longitude of Ascending Node: ", rad_to_deg(new_orbit.longitude_of_ascending_node),
+		#"\n  True Anomaly: ", rad_to_deg(new_orbit.true_anomaly))
+#
+#@export_category("")
+
+
+func update_orbit():
+	if !Engine.is_editor_hint():
+		redraw_orbital_visualizations()
+		return
+	if !enabled: return
+	if orbit != null:
+		if parent_body == null or !parent_body.is_inside_tree():
+			linear_velocity = Vector3.ZERO
+			return
+		if Engine.is_editor_hint(): print_debug("Updating orbit for: ", name)
 		
-		if orbit.semi_major_axis == 0:
-			orbit._semi_major_axis = max(0, 2*(radius+parent_body.radius))
-		#print("Updating Orbit for: ", name)
-		#var sync_setting = sync_to_physics
+		if orbit.semi_major_axis == 0.0 and parent_body:
+			var stable_orbital_distance = calculate_most_stable_semi_major_axis()
+			orbit.semi_major_axis = stable_orbital_distance
+			#elif orbit.semi_major_axis == 0:
+				#orbit._semi_major_axis = max(0, 2*(radius+parent_body.radius))
+		var mass_ratio = parent_body.mass/mass
+		#var barycenter = Orbit.get_barycenter(global_position, mass, parent_body.global_position, parent_body.mass) 
+		#if barycenter.distance_to(parent_body.global_position) > (0.5*parent_body.radius):\
+		if mass_ratio <= 50.0:
+			push_warning(name, ": Unstable mass ratio in orbit with ", parent_body.name, ": (", parent_body.mass, ":", mass, ") => ", mass_ratio)
 		sync_to_physics = false
 		set_ignore_transform_notification(true)
 		
@@ -221,7 +251,7 @@ func update_orbit():
 				push_error("Parent body '", parent_body.name, "' is not valid for synchronous orbit")
 				orbit._synchronous = false
 			else:
-				var target_a = orbit.get_sma_for_orbital_period(parent_body.rotational_period, G*parent_body.mass)
+				var target_a = Orbit.get_sma_for_orbital_period(parent_body.rotational_period, G*parent_body.mass)
 				if target_a <= radius + parent_body.radius:
 					push_error("Parent body '", parent_body.name, "' is not valid for synchronous orbit")
 					orbit._synchronous = false
@@ -232,20 +262,20 @@ func update_orbit():
 					orbit._semi_major_axis = target_a
 
 		var orbital_velocity = orbit.get_orbital_velocity(G*parent_body.mass)
-		var current_parent = parent_body_node
+		var current_parent = parent_body
 		
 		while current_parent != null and current_parent.enabled and current_parent.orbit != null:
 			orbital_velocity += current_parent.linear_velocity
-			current_parent = get_node_or_null(current_parent.orbit.parent_body)
+			current_parent = current_parent.parent_body
 		
 		if orbit.periapsis <= parent_body.radius:
 			push_warning(name, ": Periapsis intersects with parent body!")
 		var r = 0.0
-		var origin = parent_body_node.global_position
-		if orbit.relative_to_barycenter:
-			r = orbit.get_barycenter_distance_scalar(mass, parent_body.mass)
-			var new_position = orbit.get_position(0) + parent_body.global_position
-			origin = orbit.get_barycenter(new_position, mass, parent_body.global_position, parent_body.mass)
+		var origin = parent_body.global_position
+		#if orbit.relative_to_barycenter:
+			#r = orbit.get_barycenter_distance_scalar(mass, parent_body.mass)
+			#var new_position = orbit.get_position(0) + parent_body.global_position
+			#origin = orbit.get_barycenter(new_position, mass, parent_body.global_position, parent_body.mass)
 		var orbital_position = origin  + orbit.get_position(r)
 		if global_position != orbital_position:
 			global_position = orbital_position
@@ -257,21 +287,58 @@ func update_orbit():
 		sync_to_physics = true
 		set_ignore_transform_notification(false)
 		#print("true_anomaly: ", rad_to_deg(orbit.true_anomaly))
-		if show_orbit:
-			redraw_orbital_path()
+		if is_inside_tree():
+			redraw_orbital_visualizations()
 		
 	for child_body in child_bodies:
 		child_body.update_orbit()
-		
 
-#func recalculate_orbit():
-		#if orbit == null or parent_body == null:
-				#return
-		#var relative_position = global_position - parent_body.global_position
-		#var relative_velocity = linear_velocity - parent_body.linear_velocity
-		#var gravitational_parameter = G*parent_body.mass
-		#orbit.recalculate_orbital_properties(relative_position, relative_velocity, gravitational_parameter)
 
+func get_stable_orbital_distance() -> float:
+	if !parent_body:
+		return INF
+	else:
+		var parent_distance = global_position.distance_to(parent_body.global_position)
+		var stable_orbital_distance = ORBITAL_STABILITY_COEFFICIENT*Orbit.get_hill_sphere_radius(mass, parent_distance, parent_body.mass)
+		return stable_orbital_distance
+
+
+func calculate_most_stable_semi_major_axis() -> float:
+	var most_stable_semi_major_axis
+	if !parent_body:
+		return 0.0
+	var farthest_stable_orbital_distance = parent_body.get_stable_orbital_distance()
+	print(farthest_stable_orbital_distance)
+	var farthest_child_sma = 0.0
+	for body in child_bodies:
+		if body.orbit.semi_major_axis > farthest_child_sma:
+			farthest_child_sma = body.orbit.semi_major_axis
+	var farthest_sibling_apoapsis = 0.0
+	var farthest_sibling = null
+	for sibling_body in parent_body.child_bodies:
+		if sibling_body == self: continue
+		if sibling_body.orbit.apoapsis > farthest_sibling_apoapsis:
+			farthest_sibling_apoapsis = sibling_body.orbit.apoapsis
+			farthest_sibling = sibling_body
+	# Need to find A such that (0.5)*A*cbrt(m/3(m+M)) >= a
+	# A >= a/(0.5*cbrt*m/3(m+M))
+	var closest_stable_sibling_distance = 0.0
+	if farthest_sibling:
+		closest_stable_sibling_distance = farthest_sibling_apoapsis + 2*farthest_sibling.get_stable_orbital_distance()
+	var closest_stable_orbital_distance = farthest_child_sma/(ORBITAL_STABILITY_COEFFICIENT*Orbit.get_hill_sphere_radius(mass, 1.0, parent_body.mass))
+	if closest_stable_orbital_distance > farthest_stable_orbital_distance:
+		print("No fully stable semi major axis exists")
+		return farthest_stable_orbital_distance
+	closest_stable_orbital_distance = max(closest_stable_orbital_distance, closest_stable_sibling_distance)
+	if farthest_stable_orbital_distance == INF:
+		most_stable_semi_major_axis = 1.15*closest_stable_orbital_distance
+	else:
+		var margin = farthest_stable_orbital_distance-closest_stable_orbital_distance
+		most_stable_semi_major_axis = closest_stable_orbital_distance + 0.75*margin
+	return most_stable_semi_major_axis
+	
+	
+	
 
 func validate_child_bodies():
 	for child_body in child_bodies.keys().duplicate():
@@ -285,208 +352,120 @@ func clear_child_bodies():
 			child_bodies.erase(child_body)
 
 
+#region Orbital Visualization
+
+@export var show_orbit: bool = true:
+	set(val):
+		show_orbit = val
+		if orbital_line_visualization:
+			orbital_line_visualization.visible = show_orbit
+			if show_orbit:
+				redraw_orbital_visualizations()
+
+@export var show_gravity_well: bool = true:
+	set(val):
+		show_gravity_well = val
+		if is_inside_tree() and gravity_well_visualization:
+			gravity_well_visualization.visible = show_gravity_well
+			if show_gravity_well:
+				redraw_orbital_visualizations()
+
+@export_tool_button("Reload Orbital Visualizations", "Trackball")
+var reload_orbital_visualizations_button: Callable = func():
+	_initialize_orbital_visualization_meshes()
+	redraw_orbital_visualizations()
+
 @onready var ascending_texture = preload("res://assets/normal.png")
 @onready var descending_texture = preload("res://assets/anti_normal.png")
 @onready var apoapsis_texture = preload("res://assets/radial_out.png")
 @onready var periapsis_texture = preload("res://assets/radial_in.png")
 @onready var barycenter_texture = preload("res://assets/point_indicator.png")
 
-# I'd like to do this all with shaders in the future but thisll do for now
+# I'd like to do this all with shaders in the future but this'll do for now
 
-func update_orbit_visualization_nodes(body: OrbitalBody) -> MeshInstance3D:
-	if body == null: return
-	var orbital_path_node: MeshInstance3D = get_node_or_null(str(body.get_path()) + "/OrbitalPath")
-	if !orbital_path_node:
-		orbital_path_node = MeshInstance3D.new()
-		orbital_path_node.set_layer_mask_value(1, false)
-		orbital_path_node.set_layer_mask_value(2, false)
-		orbital_path_node.set_layer_mask_value(3, true)
-		body.add_child(orbital_path_node)
-	var node_path = "/OrbitalPath/Barycenter"
-	var sprite: Sprite3D = get_node_or_null(str(body.get_path()) + node_path)
-	if !sprite:
-		sprite = Sprite3D.new()
-		sprite.name = "Barycenter"
-		sprite.texture = barycenter_texture
-		orbital_path_node.add_child(sprite)
-	sprite.set_layer_mask_value(1, false)
-	sprite.set_layer_mask_value(2, false)
-	sprite.set_layer_mask_value(3, true)
-	sprite.visible = true
-	sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	sprite.scale = Vector3(1,1,1)*2*radius
-	sprite.no_depth_test = true
-	return orbital_path_node
+@onready var orbital_line_visualization_material = preload("res://assets/materials/orbital_path_material.tres")
+@onready var gravity_well_visualization_material = preload("res://assets/materials/gravity_well_visualization_material.tres")
 
-
-func redraw_orbital_path():
-	var orbital_path_node: MeshInstance3D = update_orbit_visualization_nodes(self)
+func _initialize_orbital_visualization_meshes():
+	if !gravity_well_visualization:
+		gravity_well_visualization = MeshInstance3D.new()
+		add_child(gravity_well_visualization)
+	gravity_well_visualization.material_override = gravity_well_visualization_material
+	if Engine.is_editor_hint():
+		gravity_well_visualization.visible = true
+	else:
+		gravity_well_visualization.visible = false
 	
-	if orbit == null or !parent_body:
-		print("null orbit or parent_body")
-		orbital_path_node.visible = false
-		for child in orbital_path_node.get_children():
-				child.visible = false
-		return
+	if !orbital_line_visualization:
+		orbital_line_visualization = MeshInstance3D.new()
+		orbital_line_visualization.top_level = true
+		add_child(orbital_line_visualization)
+	orbital_line_visualization.layers =  0b0000_0000_0000_0000_0000_0000_0000_0100
+	orbital_line_visualization.material_override = orbital_line_visualization_material
 
-	orbital_path_node.visible = true
-	for child in orbital_path_node.get_children():
-		child.visible = show_orbit
+	if !barycenter_visualization:
+		barycenter_visualization = Sprite3D.new()
+		add_child(barycenter_visualization)
+	barycenter_visualization.texture = barycenter_texture
+	barycenter_visualization.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+
+
+func redraw_orbital_visualizations():
+	# Orbital Line
+	if orbital_line_visualization:
+		if orbit == null or !parent_body or !show_orbit:
+			orbital_line_visualization.visible = false
+			return
+		orbital_line_visualization.visible = true
+		var r = 0.0
+		#if orbit.relative_to_barycenter:
+			#r = orbit.get_barycenter_distance_scalar(mass, parent_body.mass)
+		var orbital_path = orbit.get_orbital_path(360, r)
+		orbital_line_visualization.mesh = generate_orbital_path_mesh(orbital_path)
+		#var normal = (global_position - parent_body.global_position).normalized()
+		var focus = parent_body.global_position
+		#var orbit_origin = barycenter if orbit.relative_to_barycenter else parent_body.global_position
+		orbital_line_visualization.global_position = focus
 	
-	var r = 0.0
-	if orbit.relative_to_barycenter:
-		r = orbit.get_barycenter_distance_scalar(mass, parent_body.mass)
-	var orbital_path = orbit.get_orbital_path(360, r)
-	orbital_path_node.mesh = generate_orbital_path_mesh(orbital_path)
-	var barycenter = Orbit.get_barycenter(orbit.get_position(0) + parent_body.global_position, mass, parent_body.global_position, parent_body.mass)
-	var orbit_origin = barycenter if orbit.relative_to_barycenter else parent_body.global_position
-	orbital_path_node.global_position = orbit_origin
-
-	var sprite = get_node(str(orbital_path_node.get_path()) + "/Barycenter")
-	sprite.global_position = barycenter + orbit_origin
+	# Gravity Well
+	if gravity_well_visualization:
+		if !parent_body or !Engine.is_editor_hint() or !show_gravity_well:
+			gravity_well_visualization.visible = false
+		else:
+			var stable_orbital_radius = get_stable_orbital_distance()
+			gravity_well_visualization.mesh = generate_gravity_well_mesh(stable_orbital_radius)
+			gravity_well_visualization.visible = true
+			gravity_well_visualization.position = Vector3.ZERO
+			gravity_well_visualization.rotation = -rotation
 	
-	#if !parent_body or !orbit.relative_to_barycenter: return
-	#
-	## Draw parents orbit relative to barycenter
-	#var relative_position = parent_body.global_position - global_position
-	#var relative_velocity = parent_body.linear_velocity - linear_velocity
-	#var gravitational_parameter = G*mass
-	#var parent_orbit: Orbit = Orbit.generate_orbit(relative_position, relative_velocity, gravitational_parameter)
-	#var parent_orbital_path_node = update_orbit_visualization_nodes(parent_body)
-	#if parent_orbit == null:
-		#parent_orbital_path_node.visible = false
-		#for child in parent_orbital_path_node.get_children():
-				#child.visible = false
-		#return
-	#parent_orbital_path_node.visible = true
-	#for child in parent_orbital_path_node.get_children():
-		#child.visible = false
-	#var parent_orbital_path = parent_orbit.get_orbital_path(360, r, true)
-	#parent_orbital_path_node.global_position = orbit_origin
-	
+	# Barycenter
+	if barycenter_visualization:
+		if !parent_body or !orbit or !show_orbit or !Engine.is_editor_hint():
+			barycenter_visualization.visible = false
+		else:
+			var barycenter = Orbit.get_barycenter(global_position, mass, parent_body.global_position, parent_body.mass)
+			barycenter_visualization.visible = true
+			barycenter_visualization.global_position = barycenter
+			barycenter_visualization.scale = Vector3(1,1,1)*(orbit.semi_major_axis/5)
+			barycenter_visualization.no_depth_test = true
 
 
-static func generate_orbital_path_mesh(orbital_path: PackedVector3Array):
+static func generate_gravity_well_mesh(stable_radius: float):
+	var circle_mesh := CylinderMesh.new()
+	circle_mesh.height = 0.01
+	circle_mesh.top_radius = stable_radius
+	circle_mesh.bottom_radius = stable_radius
+	return circle_mesh
+
+static func generate_orbital_path_mesh(orbital_path: PackedVector3Array) -> ArrayMesh:
 	# Initialize the ArrayMesh.
 	var arr_mesh = ArrayMesh.new()
 	var arrays = []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = orbital_path
-
-	# Create the Mesh.
 	arr_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINE_STRIP, arrays)
 	return arr_mesh
 
-#func generate_orbital_element_nodes():
-	#print("Generating visuals for: ", name)
-	#var ascending_node = orbit.get_position_at_true_anomaly(-orbit.argument_of_periapsis, focal_distance_scalar)
-	#ascending_node.y = 0
-	#var descending_node = orbit.get_position_at_true_anomaly(-orbit.argument_of_periapsis + PI, focal_distance_scalar)
-	#descending_node.y = 0
-	#var apoapsis = orbit.get_position_at_true_anomaly(PI, focal_distance_scalar)
-	#var periapsis = orbit.get_position_at_true_anomaly(0, focal_distance_scalar)
-	#
-	#var marker_data = {
-		#"AscendingNode": [ascending_texture, ascending_node],
-		#"DescendingNode": [descending_texture, descending_node],
-		#"Apoapsis": [apoapsis_texture, apoapsis],
-		#"Periapsis": [periapsis_texture, periapsis],
-		#
-	#}
-	#
-	#
-	#for marker_name in marker_data:
-		#var hide_node = ((marker_name == "AscendingNode" or marker_name == "DescendingNode") and orbit.inclination == 0) \
-		#or ((marker_name == "Apoapsis" or marker_name == "Periapsis") and orbit.eccentricity == 0)
-		#var node_path = "./OrbitalPath/" + marker_name
-		#
-		#var sprite: Sprite3D = get_node_or_null(node_path)
-		#if !sprite:
-			#var texture = marker_data[marker_name][0]
-			#
-			#sprite = Sprite3D.new()
-			#sprite.name = marker_name
-			#sprite.texture = texture
-			#orbital_path_node.add_child(sprite)
-		#sprite.set_layer_mask_value(1, false)
-		#sprite.set_layer_mask_value(2, false)
-		#sprite.set_layer_mask_value(3, true)
-		#sprite.visible = !hide_node
-		#sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		#sprite.scale = Vector3(1,1,1)*2*radius
-		#sprite.no_depth_test = true
-		#sprite.global_position = marker_data[marker_name][1] + orbit_origin
-		
-	#print(global_position, ", ", orbit_origin)
-	
 
-
-#func update_orbital_properties_from_translation():
-	#var relative_position = global_position - parent_body.global_position
-	#var r = relative_position.length()
-	#if r == 0:
-		#return
-	#var e = orbit.eccentricity
-	#var w = orbit.argument_of_periapsis
-	#var previous_position = orbit.get_position()
-	#var delta = relative_position - previous_position
-	#var delta_len = delta.length()
-	#var lateral_delta_len = Vector2(delta.x, delta.z).length()
-	#var is_lateral_only = delta_len > 0 and absf(delta.y) <= 1e-6 * delta_len
-	#var is_vertical_only = delta_len > 0 and lateral_delta_len <= 1e-6 * delta_len
-	#var p_hat = relative_position / r
-	#var i = orbit._inclination
-	#var new_i = i
-	#var new_om = orbit._longitude_of_ascending_node
-	#var plane_found = false
-	#var sin_i = sin(i)
-	#var cos_i = cos(i)
-	#if not is_vertical_only:
-		#if absf(sin_i) > 1e-6:
-			#var a_coef = -relative_position.x
-			#var b_coef = relative_position.z
-			#var c_coef = -(cos_i / sin_i) * relative_position.y
-			#var amplitude = sqrt(a_coef*a_coef + b_coef*b_coef)
-			#if amplitude > 1e-9 and (is_lateral_only or absf(c_coef) <= amplitude + 1e-6):
-				#var c_clamped = clamp(c_coef, -amplitude, amplitude)
-				#var phi = atan2(b_coef, a_coef)
-				#var delta_angle = acos(clamp(c_clamped / amplitude, -1.0, 1.0))
-				#var candidate_a = phi + delta_angle
-				#var candidate_b = phi - delta_angle
-				#var diff_a = absf(wrapf(candidate_a - orbit._longitude_of_ascending_node, -PI, PI))
-				#var diff_b = absf(wrapf(candidate_b - orbit._longitude_of_ascending_node, -PI, PI))
-				#new_om = candidate_a if diff_a <= diff_b else candidate_b
-				#plane_found = true
-		#else:
-			#if is_lateral_only or absf(relative_position.y) <= 1e-4 * max(r, 1.0):
-				#plane_found = true
-	#if not plane_found:
-		#var old_normal = orbit.get_orbital_plane_normal()
-		#var component = old_normal - old_normal.dot(p_hat) * p_hat
-		#var new_normal: Vector3
-		#if component.length_squared() > 1e-9:
-			#new_normal = component.normalized()
-		#else:
-			#var reference = Vector3.UP if absf(p_hat.dot(Vector3.UP)) < 0.9 else Vector3.RIGHT
-			#new_normal = p_hat.cross(reference).normalized()
-		#new_i = acos(clamp(new_normal.y, -1.0, 1.0))
-		#if sin(new_i) > 1e-6:
-			#new_om = atan2(new_normal.z, -new_normal.x)
-		#else:
-			#new_om = orbit._longitude_of_ascending_node
-	#orbit._inclination = new_i
-	#orbit._longitude_of_ascending_node = wrapf(new_om, -PI, PI)
-	#var cos_om2 = cos(orbit._longitude_of_ascending_node)
-	#var sin_om2 = sin(orbit._longitude_of_ascending_node)
-	#var cos_i2 = cos(new_i)
-	#var sin_i2 = sin(new_i)
-	#var p0 = Vector3(sin_om2, 0.0, cos_om2)
-	#var q0 = Vector3(cos_om2 * cos_i2, sin_i2, -sin_om2 * cos_i2)
-	#var u = atan2(relative_position.dot(q0), relative_position.dot(p0))
-	#var new_nu = wrapf(u - w, -PI, PI)
-	#orbit._true_anomaly = new_nu
-	#var denom = 1.0 - e * e
-	#if absf(denom) > 1e-9:
-		#orbit._semi_major_axis = r * (1.0 + e * cos(new_nu)) / denom
-	#for body in child_bodies:
-		#body.update_orbit()
+#endregion
+#endregion

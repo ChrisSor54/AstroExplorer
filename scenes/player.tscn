@@ -21,7 +21,7 @@ margin = 0.02
 radius = 0.4
 
 [node name="Player" type="RigidBody3D" unique_id=1916186712 node_paths=PackedStringArray("collision_shape", "ground_raycast", "camera_pivot", "camera")]
-mass = 70.0
+mass = 7.0
 physics_material_override = SubResource("PhysicsMaterial_choun")
 can_sleep = false
 lock_rotation = true
@@ -85,28 +85,44 @@ spot_range = 100.0
 spot_attenuation = 0.0
 spot_angle = 16.45044
 
-[node name="HUD" type="CanvasLayer" parent="." unique_id=1181960250 node_paths=PackedStringArray("control", "gravity_label", "debug_label")]
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1181960250 node_paths=PackedStringArray("control", "gravity_label", "debug_label", "debug_label2")]
 script = ExtResource("3_qhqgy")
 control = NodePath("Control")
 gravity_label = NodePath("Control/GravityLabel")
 debug_label = NodePath("Control/DebugLabel")
+debug_label2 = NodePath("Control/DebugLabel2")
 
 [node name="Control" type="Control" parent="HUD" unique_id=2042244301]
 layout_mode = 3
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="GravityLabel" type="Label" parent="HUD/Control" unique_id=1459067998]
 layout_mode = 1
-anchors_preset = 2
-anchor_top = 1.0
+anchors_preset = 15
+anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -23.0
-offset_right = 40.0
-grow_vertical = 0
+grow_horizontal = 2
+grow_vertical = 2
+vertical_alignment = 2
 
 [node name="DebugLabel" type="Label" parent="HUD/Control" unique_id=1412820774]
-layout_mode = 0
-offset_right = 131.0
-offset_bottom = 64.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 2
+vertical_alignment = 2
+
+[node name="DebugLabel2" type="Label" parent="HUD/Control" unique_id=1187393682]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2

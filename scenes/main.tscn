@@ -1,4 +1,4 @@
-[gd_scene format=4 uid="uid://d2522tb5vji20"]
+[gd_scene format=3 uid="uid://d2522tb5vji20"]
 
 [ext_resource type="Script" uid="uid://rvgmrm5i4giv" path="res://scenes/star_system.gd" id="1_jyhfs"]
 [ext_resource type="Texture2D" uid="uid://bgp54i5vtb3ai" path="res://assets/ESO_-_Milky_Way.jpg" id="2_jyhfs"]
@@ -8,9 +8,7 @@
 [ext_resource type="Texture2D" uid="uid://18krst7ow0qk" path="res://assets/moon_4k.jpg" id="4_tbgi4"]
 [ext_resource type="Texture2D" uid="uid://b1imeyff26yck" path="res://assets/earth_2k.jpg" id="4_tefeu"]
 [ext_resource type="Script" uid="uid://bh6qopnt2yrat" path="res://scripts/orbit.gd" id="5_ya4ey"]
-[ext_resource type="Material" uid="uid://djp8u7gtkgqn6" path="res://assets/materials/orbital_path_material.tres" id="8_ya4ey"]
 [ext_resource type="Script" uid="uid://bx2bbswt4yoen" path="res://scenes/gravity_field.gd" id="9_85g3d"]
-[ext_resource type="PackedScene" uid="uid://bm8koi56hov2m" path="res://scenes/ship.tscn" id="11_ya4ey"]
 
 [sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_3vyb7"]
 panorama = ExtResource("2_jyhfs")
@@ -22,18 +20,19 @@ sky_material = SubResource("PanoramaSkyMaterial_3vyb7")
 [sub_resource type="Environment" id="Environment_lfxu0"]
 background_mode = 2
 sky = SubResource("Sky_jyhfs")
+ambient_light_color = Color(1, 1, 1, 1)
+ambient_light_sky_contribution = 0.0
+ambient_light_energy = 0.0
+reflected_light_source = 1
+ssao_enabled = true
 glow_enabled = true
 
-[sub_resource type="Resource" id="Resource_eb6dy"]
-script = ExtResource("5_ya4ey")
-metadata/_custom_type_script = "uid://bh6qopnt2yrat"
-
 [sub_resource type="SphereShape3D" id="SphereShape3D_lfxu0"]
-radius = 400.0
+radius = 800.0
 
 [sub_resource type="SphereMesh" id="SphereMesh_lfxu0"]
-radius = 400.0
-height = 800.0
+radius = 800.0
+height = 1600.0
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0wfyh"]
 albedo_color = Color(1, 1, 0, 1)
@@ -42,19 +41,40 @@ emission = Color(1, 1, 0, 1)
 emission_energy_multiplier = 5.0
 grow_amount = -5.966
 
+[sub_resource type="Resource" id="Resource_eb6dy"]
+script = ExtResource("5_ya4ey")
+semi_major_axis = 5000.0
+eccentricity = 0.25
+inclination = 0.5235987755982988
+argument_of_periapsis = -3.141592653589793
+tidally_locked = true
+metadata/_custom_type_script = "uid://bh6qopnt2yrat"
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_85g3d"]
+radius = 100.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_choun"]
+radius = 100.0
+height = 200.0
+radial_segments = 128
+rings = 64
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ya4ey"]
+diffuse_mode = 1
+albedo_color = Color(0.55891144, 0.26583478, 9.62615e-08, 1)
+albedo_texture = ExtResource("4_tbgi4")
+
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_g2els"]
 rough = true
 absorbent = true
 
-[sub_resource type="Resource" id="Resource_a8y0u"]
+[sub_resource type="Resource" id="Resource_ya4ey"]
 script = ExtResource("5_ya4ey")
-parent_body = NodePath("../Star")
-semi_major_axis = 3000.0
-eccentricity = 0.66
+semi_major_axis = 7624.203841629848
 metadata/_custom_type_script = "uid://bh6qopnt2yrat"
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_tefeu"]
-radius = 150.0
+radius = 175.0
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_lfxu0"]
 size = Vector3(10, 10, 28.074821)
@@ -73,8 +93,8 @@ albedo_color = Color(1, 1, 0.99215686, 0.14509805)
 data = PackedVector3Array(-4.8973, 3.1752, 13.4866, 4.8973, 3.1752, 13.4866, -4.8973, -3.1752, 13.4866, 4.8973, 3.1752, 13.4866, 4.8973, -3.1752, 13.4866, -4.8973, -3.1752, 13.4866, 4.8973, 3.1752, -13.4866, -4.8973, 3.1752, -13.4866, 4.8973, -3.1752, -13.4866, -4.8973, 3.1752, -13.4866, -4.8973, -3.1752, -13.4866, 4.8973, -3.1752, -13.4866, 4.8973, 3.1752, 13.4866, 4.8973, 3.1752, -13.4866, 4.8973, -3.1752, 13.4866, 4.8973, 3.1752, -13.4866, 4.8973, -3.1752, -13.4866, 4.8973, -3.1752, 13.4866, -4.8973, 3.1752, -13.4866, -4.8973, 3.1752, 13.4866, -4.8973, -3.1752, -13.4866, -4.8973, 3.1752, 13.4866, -4.8973, -3.1752, 13.4866, -4.8973, -3.1752, -13.4866, 4.8973, 3.1752, 13.4866, -4.8973, 3.1752, 13.4866, 4.8973, 3.1752, -13.4866, -4.8973, 3.1752, 13.4866, -4.8973, 3.1752, -13.4866, 4.8973, 3.1752, -13.4866, -4.8973, -3.1752, 13.4866, 4.8973, -3.1752, 13.4866, -4.8973, -3.1752, -13.4866, 4.8973, -3.1752, 13.4866, 4.8973, -3.1752, -13.4866, -4.8973, -3.1752, -13.4866)
 
 [sub_resource type="SphereMesh" id="SphereMesh_o6xl0"]
-radius = 150.0
-height = 300.0
+radius = 175.0
+height = 350.0
 radial_segments = 128
 rings = 64
 
@@ -82,28 +102,18 @@ rings = 64
 diffuse_mode = 1
 albedo_texture = ExtResource("4_tefeu")
 
-[sub_resource type="ArrayMesh" id="ArrayMesh_ya4ey"]
-_surfaces = [{
-"aabb": AABB(-2253.7424, 0, -4980, 4507.485, 1e-05, 6000),
-"format": 34359738369,
-"primitive": 2,
-"uv_scale": Vector4(0, 0, 0, 0),
-"vertex_count": 361,
-"vertex_data": PackedByteArray("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")
-}]
-
-[sub_resource type="Resource" id="Resource_ya4ey"]
+[sub_resource type="Resource" id="Resource_85g3d"]
 script = ExtResource("5_ya4ey")
-parent_body = NodePath("../Star")
-semi_major_axis = 9999000.0
-metadata/_custom_type_script = "uid://bh6qopnt2yrat"
+semi_major_axis = 431.25000037525984
+inclination = 0.08970992355250854
+tidally_locked = true
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_hjb8m"]
-radius = 50.0
+radius = 30.0
 
 [sub_resource type="SphereMesh" id="SphereMesh_hjb8m"]
-radius = 50.0
-height = 100.0
+radius = 30.0
+height = 60.0
 radial_segments = 128
 rings = 64
 
@@ -111,176 +121,259 @@ rings = 64
 diffuse_mode = 1
 albedo_texture = ExtResource("4_tbgi4")
 
-[sub_resource type="ArrayMesh" id="ArrayMesh_eb6dy"]
-_surfaces = [{
-"aabb": AABB(-999900, 0, -999900, 1999800, 1e-05, 1999800),
-"format": 34359738369,
-"primitive": 2,
-"uv_scale": Vector4(0, 0, 0, 0),
-"vertex_count": 361,
-"vertex_data": PackedByteArray("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")
-}]
+[sub_resource type="Resource" id="Resource_choun"]
+script = ExtResource("5_ya4ey")
+semi_major_axis = 20000.0
+inclination = 0.034557519189487726
+argument_of_periapsis = -1.7278759594743862
+true_anomaly = 1.2515756066051336
+metadata/_custom_type_script = "uid://bh6qopnt2yrat"
 
-[node name="StarSystem" type="Node3D" unique_id=323298835 node_paths=PackedStringArray("player", "world_origin", "map_camera", "map_camera_origin")]
+[sub_resource type="SphereShape3D" id="SphereShape3D_ya4ey"]
+radius = 300.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_eb6dy"]
+radius = 300.0
+height = 600.0
+radial_segments = 128
+rings = 64
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_trceg"]
+diffuse_mode = 1
+albedo_color = Color(0.96952075, 0.8295209, 0, 1)
+
+[node name="StarSystem" type="Node3D" unique_id=323298835 node_paths=PackedStringArray("player", "world_origin_controller", "map_camera", "map_camera_origin")]
 script = ExtResource("1_jyhfs")
-player = NodePath("WorldOrigin/Player")
-world_origin = NodePath("WorldOrigin")
+player = NodePath("WorldOriginController/Player")
+world_origin_controller = NodePath("WorldOriginController")
 map_camera = NodePath("MapCameraOrigin/MapCamera")
 map_camera_origin = NodePath("MapCameraOrigin")
+enable_n_body_calculations = true
+time_scale = 64.0
 
 [node name="Skybox" type="WorldEnvironment" parent="." unique_id=1475060691]
 environment = SubResource("Environment_lfxu0")
 
 [node name="MapCameraOrigin" type="Marker3D" parent="." unique_id=343246540]
-transform = Transform3D(1, 0, 0, 0, 0.9999997, 0, 0, 0, 0.9999997, 0, -1.3458879, -9998949)
+transform = Transform3D(1, 0, 0, 0, 0.9999997, 0, 0, 0, 0.9999997, -16.210337, 38.335342, -7452.4688)
 
 [node name="MapCamera" type="Camera3D" parent="MapCameraOrigin" unique_id=1733701076]
 transform = Transform3D(-4.371139e-08, 1, 4.371139e-08, 0, -4.371139e-08, 1, 1, 4.371139e-08, 1.9106855e-15, 0, 0, 0)
 fov = 100.0
 far = 500000.0
 
-[node name="WorldOrigin" type="Node3D" parent="." unique_id=1496961808 node_paths=PackedStringArray("reference_body")]
+[node name="WorldOriginController" type="Node3D" parent="." unique_id=1496961808 node_paths=PackedStringArray("reference_body", "virtual_origin")]
 top_level = true
 script = ExtResource("3_ya4ey")
 reference_body = NodePath("Player")
+virtual_origin = NodePath("VirtualOrigin")
 
-[node name="Star" type="AnimatableBody3D" parent="WorldOrigin" unique_id=256424575 node_paths=PackedStringArray("collision_shape", "mesh")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.3458879, -9998949)
+[node name="VirtualOrigin" type="Marker3D" parent="WorldOriginController" unique_id=335965371]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.210337, 38.335342, -7452.4688)
+top_level = true
+
+[node name="Star" type="AnimatableBody3D" parent="WorldOriginController" unique_id=256424575 node_paths=PackedStringArray("collision_shape", "mesh", "orbital_line_visualization", "gravity_well_visualization", "barycenter_visualization", "child_bodies")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.210337, 38.335342, -7452.4688)
 script = ExtResource("3_tbgi4")
-body_name = "Star"
-surface_height = 400.0
-surface_gravity = 30.0
 collision_shape = NodePath("CollisionShape3D")
 mesh = NodePath("Mesh")
-orbit = SubResource("Resource_eb6dy")
+orbital_line_visualization = NodePath("@MeshInstance3D@32148")
+gravity_well_visualization = NodePath("@MeshInstance3D@32147")
+barycenter_visualization = NodePath("@Sprite3D@32149")
+body_name = "Star"
+surface_height = 800.0
+surface_gravity = 60.0
+child_bodies = {
+NodePath("../HomePlanet"): true,
+NodePath("../Planet2"): true,
+NodePath("../Planet3"): true
+}
 show_orbit = false
-radius = 400.0
-mass = 4800000.0
+radius = 800.0
+mass = 38400000.0
+metadata/_edit_lock_ = true
 
-[node name="OmniLight3D" type="OmniLight3D" parent="WorldOrigin/Star" unique_id=1069797711]
-light_energy = 10000.0
-shadow_enabled = true
+[node name="OmniLight3D" type="OmniLight3D" parent="WorldOriginController/Star" unique_id=1069797711]
+light_energy = 5000.0
 shadow_bias = 2.0
 shadow_blur = 3.0
 distance_fade_shadow = 0.0
-omni_range = 16126.674
+omni_range = 50000.0
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="WorldOrigin/Star" unique_id=2125179676]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WorldOriginController/Star" unique_id=2125179676]
 shape = SubResource("SphereShape3D_lfxu0")
 
-[node name="Mesh" type="MeshInstance3D" parent="WorldOrigin/Star" unique_id=1424727798]
+[node name="Mesh" type="MeshInstance3D" parent="WorldOriginController/Star" unique_id=1424727798]
 mesh = SubResource("SphereMesh_lfxu0")
 surface_material_override/0 = SubResource("StandardMaterial3D_0wfyh")
 
-[node name="RemoteTransform3D" type="RemoteTransform3D" parent="WorldOrigin/Star" unique_id=262586335]
+[node name="RemoteTransform3D" type="RemoteTransform3D" parent="WorldOriginController/Star" unique_id=262586335]
+transform = Transform3D(1, 0, 0, 0, 0.99999994, 0, 0, 0, 0.99999994, 0, 0, 0)
 remote_path = NodePath("../../../MapCameraOrigin")
 update_rotation = false
 update_scale = false
 
-[node name="Planet" type="AnimatableBody3D" parent="WorldOrigin" unique_id=1755902633 node_paths=PackedStringArray("collision_shape", "mesh")]
-transform = Transform3D(1, 0, 0, 0, 0.91775465, -0.3971479, 0, 0.3971479, 0.91775465, 0, -1.3458879, -9997925)
-physics_material_override = SubResource("PhysicsMaterial_g2els")
+[node name="Planet2" type="AnimatableBody3D" parent="WorldOriginController" unique_id=927699427 node_paths=PackedStringArray("collision_shape", "mesh", "orbital_line_visualization", "gravity_well_visualization", "barycenter_visualization", "parent_body")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.210337, 38.335342, -11202.469)
 script = ExtResource("3_tbgi4")
-body_name = "Planet"
-surface_height = 150.0
-surface_gravity = 9.8
-rotational_period = 120.0
 collision_shape = NodePath("CollisionShape3D")
 mesh = NodePath("Mesh")
-orbit = SubResource("Resource_a8y0u")
-radius = 150.0
-mass = 220500.00000000003
-linear_velocity = Vector3(88.384186, 0, 0)
-angular_velocity = Vector3(0, 0.04805352, 0.020794615)
+orbital_line_visualization = NodePath("@MeshInstance3D@32157")
+gravity_well_visualization = NodePath("@MeshInstance3D@32156")
+barycenter_visualization = NodePath("@Sprite3D@32158")
+body_name = "Planet2"
+surface_height = 100.0
+surface_gravity = 10.0
+rotational_period = 358.48357559659223
+parent_body = NodePath("../Star")
+orbit = SubResource("Resource_eb6dy")
+radius = 100.0
+mass = 100000.0
+linear_velocity = Vector3(-97.97959, -56.568542, 1.3854839e-14)
+angular_velocity = Vector3(0, 0.017527122, 0)
+metadata/_edit_lock_ = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="WorldOrigin/Planet" unique_id=72875803]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WorldOriginController/Planet2" unique_id=544852868]
+shape = SubResource("SphereShape3D_85g3d")
+
+[node name="Mesh" type="MeshInstance3D" parent="WorldOriginController/Planet2" unique_id=37693077]
+transform = Transform3D(1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0)
+mesh = SubResource("SphereMesh_choun")
+surface_material_override/0 = SubResource("StandardMaterial3D_ya4ey")
+
+[node name="SpawnPoint" type="Marker3D" parent="WorldOriginController/Planet2" unique_id=1544355034]
+transform = Transform3D(1, 0, 0, 0, -4.284084e-08, 1, 0, -1, -4.284084e-08, 0, 0, -51.415)
+
+[node name="HomePlanet" type="AnimatableBody3D" parent="WorldOriginController" unique_id=1755902633 node_paths=PackedStringArray("collision_shape", "mesh", "orbital_line_visualization", "gravity_well_visualization", "barycenter_visualization", "parent_body", "child_bodies")]
+transform = Transform3D(1, 0, 0, 0, 0.91775465, 0.3971479, 0, -0.3971479, 0.91775465, -16.210337, 38.335342, 171.73486)
+physics_material_override = SubResource("PhysicsMaterial_g2els")
+script = ExtResource("3_tbgi4")
+collision_shape = NodePath("CollisionShape3D")
+mesh = NodePath("Mesh")
+orbital_line_visualization = NodePath("@MeshInstance3D@32151")
+gravity_well_visualization = NodePath("@MeshInstance3D@32150")
+barycenter_visualization = NodePath("@Sprite3D@32152")
+body_name = "Planet"
+surface_height = 175.0
+surface_gravity = 9.8
+rotational_period = 120.0
+parent_body = NodePath("../Star")
+orbit = SubResource("Resource_ya4ey")
+child_bodies = {
+NodePath("../Moon"): true
+}
+radius = 175.0
+mass = 300125.0
+linear_velocity = Vector3(70.96895, 0, 0)
+angular_velocity = Vector3(0, 0.04805352, -0.020794615)
+metadata/_edit_lock_ = true
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WorldOriginController/HomePlanet" unique_id=72875803]
 shape = SubResource("SphereShape3D_tefeu")
 
-[node name="Tower" type="CollisionShape3D" parent="WorldOrigin/Planet" unique_id=1180854256]
+[node name="Tower" type="CollisionShape3D" parent="WorldOriginController/HomePlanet" unique_id=1180854256]
 transform = Transform3D(1, 0, 0, 0, 0.91775465, 0.3971479, 0, -0.3971479, 0.91775465, 0, 62.00415, 152.35693)
 shape = SubResource("BoxShape3D_lfxu0")
 
-[node name="Mesh" type="MeshInstance3D" parent="WorldOrigin/Planet/Tower" unique_id=235118688]
+[node name="Mesh" type="MeshInstance3D" parent="WorldOriginController/HomePlanet/Tower" unique_id=235118688]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -3.0517578e-05, -0.25515747)
 mesh = SubResource("BoxMesh_lfxu0")
 
-[node name="GravitationalField" type="Area3D" parent="WorldOrigin/Planet/Tower" unique_id=1303262178]
+[node name="GravitationalField" type="Area3D" parent="WorldOriginController/HomePlanet/Tower" unique_id=1303262178]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.07883167, 5.265869, -0.49072266)
 priority = 1
 gravity_space_override = 1
 gravity_point_unit_distance = 40.846
 script = ExtResource("9_85g3d")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="WorldOrigin/Planet/Tower/GravitationalField" unique_id=349689140]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="WorldOriginController/HomePlanet/Tower/GravitationalField" unique_id=349689140]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2926025, 0)
 mesh = SubResource("BoxMesh_85g3d")
 surface_material_override/0 = SubResource("StandardMaterial3D_hjb8m")
 
-[node name="CollisionShape3D2" type="CollisionShape3D" parent="WorldOrigin/Planet/Tower/GravitationalField" unique_id=524513032]
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="WorldOriginController/HomePlanet/Tower/GravitationalField" unique_id=524513032]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2926025, 0)
 shape = SubResource("ConcavePolygonShape3D_choun")
 
-[node name="Mesh" type="MeshInstance3D" parent="WorldOrigin/Planet" unique_id=513786697]
+[node name="Mesh" type="MeshInstance3D" parent="WorldOriginController/HomePlanet" unique_id=513786697]
 mesh = SubResource("SphereMesh_o6xl0")
 surface_material_override/0 = SubResource("StandardMaterial3D_tipki")
 
-[node name="SpawnPoint" type="Marker3D" parent="WorldOrigin/Planet" unique_id=1943889174]
-transform = Transform3D(1, 0, 0, 0, 0.06627965, -0.99780166, 0, 0.99780166, 0.06627965, 16.210337, 23.625977, 150.73926)
+[node name="SpawnPoint" type="Marker3D" parent="WorldOriginController/HomePlanet" unique_id=1943889174]
+transform = Transform3D(1, 0, 0, 0, -2.9802322e-08, 1.0000006, 0, -1.0000006, -2.9802322e-08, 16.210337, 33.02173, -172.83533)
 
-[node name="OrbitalPath" type="MeshInstance3D" parent="WorldOrigin/Planet" unique_id=1795706348]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.3458879, -999848.6)
-top_level = true
-layers = 4
-mesh = SubResource("ArrayMesh_ya4ey")
-surface_material_override/0 = ExtResource("8_ya4ey")
-
-[node name="Moon" type="AnimatableBody3D" parent="WorldOrigin" unique_id=1768735610 node_paths=PackedStringArray("collision_shape", "mesh")]
-transform = Transform3D(1, 0, 0, 0, 0.99965733, -0.02617695, 0, 0.02617695, 0.99965733, 0, -1.3458879, 51)
+[node name="Moon" type="AnimatableBody3D" parent="WorldOriginController" unique_id=1768735610 node_paths=PackedStringArray("collision_shape", "mesh", "orbital_line_visualization", "gravity_well_visualization", "barycenter_visualization", "parent_body")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.210337, 38.335342, 602.98486)
 script = ExtResource("3_tbgi4")
-body_name = "Moon"
-surface_height = 50.0
-surface_gravity = 5.0
 collision_shape = NodePath("CollisionShape3D")
 mesh = NodePath("Mesh")
-orbit = SubResource("Resource_ya4ey")
+orbital_line_visualization = NodePath("@MeshInstance3D@32154")
+gravity_well_visualization = NodePath("@MeshInstance3D@32153")
+barycenter_visualization = NodePath("@Sprite3D@32155")
+body_name = "Moon"
+surface_height = 30.0
+surface_gravity = 5.0
+rotational_period = 102.71229767854118
+parent_body = NodePath("../HomePlanet")
+orbit = SubResource("Resource_85g3d")
 show_orbit = false
-radius = 50.0
-mass = 12500.0
-linear_velocity = Vector3(0.69285494, 0, 0)
+radius = 30.0
+mass = 4500.0
+linear_velocity = Vector3(97.243576, 2.3634386, 0)
+angular_velocity = Vector3(0, 0.061172668, 0)
+metadata/_edit_lock_ = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="WorldOrigin/Moon" unique_id=786149281]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WorldOriginController/Moon" unique_id=786149281]
 shape = SubResource("SphereShape3D_hjb8m")
 
-[node name="Mesh" type="MeshInstance3D" parent="WorldOrigin/Moon" unique_id=1127708659]
+[node name="Mesh" type="MeshInstance3D" parent="WorldOriginController/Moon" unique_id=1127708659]
 transform = Transform3D(1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0)
 mesh = SubResource("SphereMesh_hjb8m")
 surface_material_override/0 = SubResource("StandardMaterial3D_jyhfs")
 
-[node name="SpawnPoint" type="Marker3D" parent="WorldOrigin/Moon" unique_id=277048020]
+[node name="SpawnPoint" type="Marker3D" parent="WorldOriginController/Moon" unique_id=277048020]
 transform = Transform3D(1, 0, 0, 0, -4.284084e-08, 1, 0, -1, -4.284084e-08, 0, 0, -51.415)
 
-[node name="OrbitalPath" type="MeshInstance3D" parent="WorldOrigin/Moon" unique_id=1825785099]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.3458879, -999848.6)
-top_level = true
-visible = false
-layers = 4
-mesh = SubResource("ArrayMesh_eb6dy")
-surface_material_override/0 = ExtResource("8_ya4ey")
+[node name="Planet3" type="AnimatableBody3D" parent="WorldOriginController" unique_id=381027270 node_paths=PackedStringArray("collision_shape", "mesh", "orbital_line_visualization", "gravity_well_visualization", "barycenter_visualization", "parent_body")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18962.057, 694.43835, -1175.9341)
+script = ExtResource("3_tbgi4")
+collision_shape = NodePath("CollisionShape3D")
+mesh = NodePath("Mesh")
+orbital_line_visualization = NodePath("@MeshInstance3D@32160")
+gravity_well_visualization = NodePath("@MeshInstance3D@32159")
+barycenter_visualization = NodePath("@Sprite3D@32161")
+body_name = "Planet3"
+surface_height = 300.0
+surface_gravity = 15.0
+rotational_period = 102.71229767854118
+parent_body = NodePath("../Star")
+orbit = SubResource("Resource_choun")
+radius = 300.0
+mass = 1350000.0
+linear_velocity = Vector3(13.742989, 0.47511274, -41.60414)
+angular_velocity = Vector3(0, 0.061172668, 0)
+metadata/_edit_lock_ = true
 
-[node name="Ship" parent="WorldOrigin" unique_id=391114159 instance=ExtResource("11_ya4ey")]
-transform = Transform3D(1, 0, 0, 0, -0.22310074, -0.9747954, 0, 0.9747954, -0.22310074, 0, -29.540287, -10012197)
-mass = 1.0
-linear_velocity = Vector3(-42.217903, 0.33708772, -0.77896374)
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WorldOriginController/Planet3" unique_id=491014762]
+shape = SubResource("SphereShape3D_ya4ey")
 
-[node name="Player" parent="WorldOrigin" unique_id=1916186712 node_paths=PackedStringArray("spawn_point") instance=ExtResource("4_jyhfs")]
-transform = Transform3D(1, 0, 0, 0, 0.026176754, 0.9996527, 0, -0.9996527, 0.026176754, 0, 0, -0.39738083)
+[node name="Mesh" type="MeshInstance3D" parent="WorldOriginController/Planet3" unique_id=1560741096]
+transform = Transform3D(1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0)
+mesh = SubResource("SphereMesh_eb6dy")
+surface_material_override/0 = SubResource("StandardMaterial3D_trceg")
+
+[node name="SpawnPoint" type="Marker3D" parent="WorldOriginController/Planet3" unique_id=860006951]
+transform = Transform3D(1, 0, 0, 0, -4.284084e-08, 1, 0, -1, -4.284084e-08, 0, 0, -51.415)
+
+[node name="Player" parent="WorldOriginController" unique_id=1916186712 node_paths=PackedStringArray("spawn_point") instance=ExtResource("4_jyhfs")]
+transform = Transform3D(1, 0, 0, 0, -0.3971475, 0.9177538, 0, -0.9177538, -0.3971475, 0, 0, -6.1035156e-05)
 top_level = true
-linear_velocity = Vector3(0.69285494, 0, 0)
+linear_velocity = Vector3(55.735855, -0.33708772, -0.77896374)
 walk_speed = 10.0
 walk_acceleration = 15.0
-thrust_strength = 15.0
+thrust_strength = 5.0
 jump_strength = 12.0
-spawn_point = NodePath("../Moon/SpawnPoint")
+spawn_point = NodePath("../HomePlanet/SpawnPoint")
 
-[connection signal="map_opened" from="WorldOrigin/Player" to="." method="_on_player_map_opened"]
-[connection signal="spawn_point_set" from="WorldOrigin/Player" to="." method="_on_player_spawn_point_set"]
+[connection signal="map_opened" from="WorldOriginController/Player" to="." method="_on_player_map_opened"]
+[connection signal="spawn_point_set" from="WorldOriginController/Player" to="." method="_on_player_spawn_point_set"]

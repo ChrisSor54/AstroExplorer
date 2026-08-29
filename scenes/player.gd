@@ -59,7 +59,7 @@ signal map_opened(is_open: bool, target_position: Vector3, camera_distance: floa
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	_mouselook_enabled = false
-	pass # Replace with function body.
+
 
 func _input(event: InputEvent) -> void:
 	if Input.is_action_just_pressed("toggle_mouselook"):
@@ -100,7 +100,6 @@ func _physics_process(delta: float) -> void:
 		if !in_zero_G:
 			_is_reorienting = true
 		in_zero_G = true
-	
 	if ground_raycast.is_colliding() and _ground != null:
 		var up_vector = (global_position-_ground.global_position).normalized()
 		if linear_velocity.dot(up_vector) >= 0:
@@ -119,13 +118,6 @@ func _physics_process(delta: float) -> void:
 	#update_linear_velocity.emit(linear_velocity)
 	#linear_velocity = Vector3.ZERO
 
-#func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
-	#super._integrate_forces(state)
-	#var up_vector = global_transform.basis.y.normalized()
-	#var spin = state.angular_velocity.project(up_vector)
-	##var controlled_angular_velocity = state.angular_velocity - spin
-	##state.angular_velocity -= spin
-	#global_rotation += (state.angular_velocity)*state.step
 
 
 func _process_movement_input(delta: float) -> void:
@@ -147,7 +139,8 @@ func _process_movement_input(delta: float) -> void:
 
 	var move_vector = Vector3.ZERO
 	if is_grounded:
-		#up_vector = (global_position - parent_body.global_position).normalized()
+		#if parent_body:
+			#up_vector = (global_position - parent_body.global_position).normalized()
 		
 		if input_vector != Vector3.ZERO:
 			input_vector = input_vector.normalized()
@@ -163,7 +156,7 @@ func _process_movement_input(delta: float) -> void:
 		if !_ignore_spin:
 			global_rotate(up_vector, _ground.angular_velocity.dot(up_vector)*delta)
 			#angular_velocity +=  _ground.angular_velocity.project(up_vector)
-			
+		
 		var surface_velocity = _ground.linear_velocity
 		if _ground is AstroBody:
 			surface_velocity += _ground.get_surface_velocity_from(ground_raycast.get_collision_point())
@@ -185,16 +178,14 @@ func _process_movement_input(delta: float) -> void:
 		else:
 			if !is_jumping and relative_velocity.length_squared() <= 0.2:
 				# Check for overlap before getting surface position
-				if get_overlap_with_ground() < 0.01:
+				var overlap = get_overlap_with_ground()
+				if overlap < 0.001:
 					if _is_stuck_to_surface:
 						global_position = _ground.to_global(_surface_position)
 					else:
 						_is_stuck_to_surface = true
-						#var ground_offset = (ground_raycast.global_position - ground_raycast.get_collision_point()).dot(up_vector)
 						_surface_position = _ground.to_local(global_position)
-					linear_velocity = surface_velocity
-				else:
-					_is_stuck_to_surface = false
+				linear_velocity = surface_velocity
 			else:
 				_is_stuck_to_surface = false
 		if !is_jumping:

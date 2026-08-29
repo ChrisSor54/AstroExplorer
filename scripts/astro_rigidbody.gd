@@ -18,6 +18,13 @@ signal integrating_forces(emitter: PhysicsBody3D, state: PhysicsDirectBodyState3
 func _ready() -> void:
 	pass # Replace with function body.
 
+## Called by the StarSystem at the start of each physics frame.
+## Resets appropriate values
+func _on_new_frame():
+	parent_body = null
+	parent_gravity = Vector3.ZERO
+	_current_strongest_gravity = Vector3.ZERO
+	_current_gravity = get_gravity()
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
@@ -38,33 +45,37 @@ func apply_gravitational_force(source_body: PhysicsBody3D, gravity_vector: Vecto
 			parent_gravity = gravity_vector
 			parent_body = source_body
 
-
-## Called by the StarSystem at the start of each physics frame.
-## Resets appropriate values
-func _on_new_frame():
-	parent_body = null
-	parent_gravity = Vector3.ZERO
-	_current_strongest_gravity = Vector3.ZERO
-	_current_gravity = get_gravity()
-
-
-## Get the graviational acceleration this body produces on [param target_body].
-## Returns a Vector3 pointing to the target body, whos magnitude is the resulting force.
-func get_gravity_between_body(target_body: Variant) -> Vector3:
-	if target_body is AstroBody or target_body is AstroRigidBody:
-		return get_gravity_between(target_body.global_position, target_body.mass)
+## Get the gravitational attraction this body experiences from [param target_body]
+##
+## Calculates the gravitational force this body experiences from [param target_body].
+## Returns a [Vector3] pointing to the [param target_body]'s relative position, with a magnitude of the resulting force.
+func get_gravity_from_body(target_body: Variant) -> Vector3:
+	if target_body is AstroBody:
+		return get_gravity_from(target_body.global_position, target_body.mass, target_body.radius)
+	elif target_body is AstroRigidBody:
+		return get_gravity_from(target_body.global_position, target_body.mass)
 	else:
 		push_error(target_body, " is not a valid body")
 		return Vector3.ZERO
 
-## Returns the gravitational acceleration this body would produce on an object at
-## [param target_position] with a mass of [param target_mass]
-func get_gravity_between(target_position: Vector3, target_mass: float = 1.0) -> Vector3:
-	var normal := global_position - target_position
+## Get the gravitational attraction this body experiences from an object at [param target_position] with a mass of [param target_mass] and
+## a radius of [param target_radius].
+##
+## Calculates the gravitational force this body would experience from on an object at
+## [param target_position] with a mass of [param target_mass].
+## Returns a [Vector3] pointing to the relative [param target_position], with a magnitude of the resulting force.
+## If [param target_radius] is provided, the gravitational force will be reduced according to the shell theorem, provided
+## that [self] is inside the [param target_radius].
+func get_gravity_from(target_position: Vector3, target_mass: float = 1.0, target_radius: float = 0.0) -> Vector3:
+	var G = StarSystem.G
+	var normal := target_position - global_position
 	var sqr_distance = normal.length_squared()
 	var gravity_vector = Vector3.ZERO
 	if is_zero_approx(sqr_distance):
 		gravity_vector = Vector3.ZERO
+	elif is_zero_approx(target_radius) or sqr_distance >= target_radius*target_radius:
+		gravity_vector = normal.normalized()*(G*mass*target_mass/sqr_distance)
 	else:
-		gravity_vector = normal.normalized()*(StarSystem.G*mass*target_mass/sqr_distance)
+		var distance = normal.length()
+		gravity_vector = normal.normalized()*((G*mass*target_mass*distance)/(target_radius*target_radius*target_radius))
 	return gravity_vector
