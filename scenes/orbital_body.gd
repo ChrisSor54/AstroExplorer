@@ -67,7 +67,9 @@ func _ready() -> void:
 	_initialize_orbital_visualization_meshes()
 	print_debug(name, " initialized")
 
-#func _notification(what: int) -> void:
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		parent_body = null
 	#if Engine.is_editor_hint():
 		#if what == NOTIFICATION_TRANSFORM_CHANGED:
 			#if orbit and parent_body:
@@ -84,7 +86,7 @@ func _ready() -> void:
 					#generate_orbital_path_visualization(360, r)
 			#for child in child_bodies:
 				#child.update_orbit()
-				##update_orbit()
+				#update_orbit()
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -129,10 +131,6 @@ func calculate_mass():
 		body.update_orbit()
 
 
-func _exit_tree() -> void:
-	parent_body = null
-
-
 # Orbit ------------------------------------------------------------------------
 
 #region Orbital Properties
@@ -172,13 +170,13 @@ const ORBITAL_STABILITY_COEFFICIENT: float = 0.5
 var child_bodies: Dictionary[OrbitalBody, bool] = {}
 
 
-@export_tool_button("Refresh Orbit", "Trackball")
+@export_tool_button("Apply Orbit to Position", "Trackball")
 var refresh_orbit: Callable = update_orbit
+#
+#@export_tool_button("Validate Child Bodies", "Environment")
+#var validate_child_bodies_button: Callable = validate_child_bodies
 
-@export_tool_button("Validate Child Bodies", "Environment")
-var validate_child_bodies_button: Callable = validate_child_bodies
-
-@export_tool_button("Recalculate Orbit", "Trackball")
+@export_tool_button("Recalculate Orbit From Position", "Trackball")
 var recalculate_orbit_button: Callable = calculate_new_orbit
 
 func calculate_new_orbit():
@@ -265,7 +263,10 @@ func update_orbit():
 		var current_parent = parent_body
 		
 		while current_parent != null and current_parent.enabled and current_parent.orbit != null:
-			orbital_velocity += current_parent.linear_velocity
+			if current_parent.parent_body:
+				orbital_velocity += current_parent.orbit.get_orbital_velocity(G*current_parent.parent_body.mass)
+			else:
+				orbital_velocity += current_parent.linear_velocity
 			current_parent = current_parent.parent_body
 		
 		if orbit.periapsis <= parent_body.radius:
@@ -308,15 +309,15 @@ func calculate_most_stable_semi_major_axis() -> float:
 	if !parent_body:
 		return 0.0
 	var farthest_stable_orbital_distance = parent_body.get_stable_orbital_distance()
-	print(farthest_stable_orbital_distance)
 	var farthest_child_sma = 0.0
 	for body in child_bodies:
+		if !body.enabled: continue
 		if body.orbit.semi_major_axis > farthest_child_sma:
 			farthest_child_sma = body.orbit.semi_major_axis
 	var farthest_sibling_apoapsis = 0.0
 	var farthest_sibling = null
 	for sibling_body in parent_body.child_bodies:
-		if sibling_body == self: continue
+		if sibling_body == self or !sibling_body.enabled: continue
 		if sibling_body.orbit.apoapsis > farthest_sibling_apoapsis:
 			farthest_sibling_apoapsis = sibling_body.orbit.apoapsis
 			farthest_sibling = sibling_body
@@ -353,6 +354,8 @@ func clear_child_bodies():
 
 
 #region Orbital Visualization
+
+
 
 @export var show_orbit: bool = true:
 	set(val):

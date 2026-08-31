@@ -12,6 +12,14 @@ absorbent = true
 radius = 0.3
 height = 0.6
 
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_hjb8m"]
+radius = 0.06
+height = 0.4
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_r6c0r"]
+albedo_color = Color(0.2159017, 0.21590173, 0.2159017, 1)
+metallic = 0.5
+
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_lfxu0"]
 radius = 0.25
 height = 1.3227539
@@ -42,6 +50,12 @@ layers = 6
 mesh = SubResource("SphereMesh_lfxu0")
 surface_material_override/0 = ExtResource("2_g2els")
 
+[node name="Visor" type="MeshInstance3D" parent="Mesh/Head" unique_id=1102171963]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0.022081673, -0.28635016)
+layers = 6
+mesh = SubResource("CapsuleMesh_hjb8m")
+surface_material_override/0 = SubResource("StandardMaterial3D_r6c0r")
+
 [node name="Body" type="MeshInstance3D" parent="Mesh" unique_id=296623505]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.3317871, 0)
 gi_mode = 0
@@ -58,7 +72,7 @@ update_scale = false
 
 [node name="GroundedRayCast" type="RayCast3D" parent="." unique_id=345704609]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
-target_position = Vector3(0, -0.2, 0)
+target_position = Vector3(0, -0.5, 0)
 hit_from_inside = true
 
 [node name="CameraPivot" type="Node3D" parent="." unique_id=72778139]

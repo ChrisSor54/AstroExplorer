@@ -20,7 +20,7 @@ var _argument_of_periapsis: float = 0:
 		_argument_of_periapsis = wrapf(val, -PI, PI)
 var _inclination: float = 0.0:
 	set(val):
-		_inclination = wrapf(val, 0, PI)
+		_inclination = wrapf(val, -PI, PI)
 var _longitude_of_ascending_node: float = 0.0:
 	set(val):
 		_longitude_of_ascending_node = wrapf(val, -PI, PI)
@@ -53,7 +53,7 @@ var eccentricity: float:
 		if !_ignore_update: emit_changed()
 	get(): return _eccentricity
 
-@export_range(0, 180, 0.01, "radians_as_degrees","suffix:°")
+@export_range(-180.0, 180, 0.01, "radians_as_degrees","suffix:°")
 var inclination: float:
 	set(val):
 		_inclination = val
@@ -156,11 +156,9 @@ func get_orbital_velocity_at_true_anomaly(ta: float, gravitational_parameter: fl
 	var cos_om = cos(longitude_of_ascending_node) if !(is_zero_approx(_inclination) or is_equal_approx(_inclination, PI)) else 1.0
 	var sin_om = sin(longitude_of_ascending_node) if !(is_zero_approx(_inclination) or is_equal_approx(_inclination, PI)) else 0.0
 	
-	var x = vx_orbit*(sin_om*cos_w + cos_om*sin_w*cos_i) \
-		- vy_orbit*(sin_om*sin_w - cos_om*cos_w*cos_i)
+	var x = vx_orbit*(sin_om*cos_w + cos_om*sin_w*cos_i) - vy_orbit*(sin_om*sin_w - cos_om*cos_w*cos_i)
 	var y = vx_orbit*(sin_w*sin_i) + vy_orbit*(cos_w*sin_i)
-	var z = vx_orbit*(cos_om*cos_w - sin_om*sin_w*cos_i) \
-		- vy_orbit*(cos_om*sin_w + sin_om*cos_w * cos_i)
+	var z = vx_orbit*(cos_om*cos_w - sin_om*sin_w*cos_i) - vy_orbit*(cos_om*sin_w + sin_om*cos_w * cos_i)
 	return Vector3(x, y, z)
 
 
@@ -202,6 +200,7 @@ static func calculate_orbital_plane_normal(relative_position: Vector3, relative_
 	var orbital_plane_normal = relative_position.cross(relative_velocity).normalized()
 	return orbital_plane_normal
 
+
 static func calculate_orbit(relative_position: Vector3, relative_velocity: Vector3, gravitational_parameter: float) -> Orbit:
 	var new_orbit = Orbit.new()
 	var distance = relative_position.length()
@@ -225,9 +224,14 @@ static func calculate_orbit(relative_position: Vector3, relative_velocity: Vecto
 	new_orbit.eccentricity = e.length()
 	new_orbit.semi_major_axis = -mu/(2*energy)
 	var i = Vector3.UP.angle_to(h)
-	
+	print(h.dot(Vector3.UP))
+	if h.dot(Vector3.UP) < 0.0:
+		i = TAU - i
 	new_orbit.inclination = i
-	new_orbit.longitude_of_ascending_node = atan2(n.x, n.z) if !(is_zero_approx(i) or is_equal_approx(i, PI)) else 0.0
+	var loan = atan2(n.x, n.z) if !(is_zero_approx(i) or is_equal_approx(i, PI)) else 0.0
+	#if h.dot(Vector3.UP) < 0.0:
+		#loan = TAU - loan
+	new_orbit.longitude_of_ascending_node = loan
 	var aop = n.angle_to(e) if !is_zero_approx(new_orbit.eccentricity) else 0.0
 	if e.dot(Vector3.UP) < 0.0:
 		aop = TAU - aop

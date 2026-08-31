@@ -47,7 +47,7 @@ func _process(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint(): return
 	if reference_body:
-		float_origin()
+		float_origin(delta)
 	if virtual_origin:
 		virtual_origin.global_position += virtual_reference_velocity*delta
 	for node in stationary_nodes:
@@ -86,11 +86,11 @@ func center_reference_body():
 			if node.has_method("reset_physics_interpolation"):
 				node.reset_physics_interpolation()
 	
-	for body in get_children():
-		if body is OrbitalBody and body.orbit:
+	for body in star_system.orbital_bodies:
+		if body.orbit:
 			body.update_orbit()
 			if body.show_orbit:
-				body.redraw_orbital_path()
+				body.redraw_orbital_visualizations()
 
 
 func _integrate_relative_forces(emitter: PhysicsBody3D, state: PhysicsDirectBodyState3D):
@@ -104,17 +104,18 @@ func _integrate_relative_forces(emitter: PhysicsBody3D, state: PhysicsDirectBody
 	# repositioning won't cause issues
 	for node in get_children():
 		if node == emitter or node is not PhysicsBody3D: continue
-		node.linear_velocity -= relative_velocity
+		if node is RigidBody3D:
+			node.apply_force(-relative_velocity*node.mass)
+		else:
+			node.linear_velocity -= relative_velocity
 	
 	virtual_reference_velocity -= relative_velocity
 
-func float_origin(state: PhysicsDirectBodyState3D = null):
+func float_origin(delta: float):
 	if !reference_body: return
-	var new_origin = state.transform.origin if state else reference_body.global_position
+	var new_origin = reference_body.global_position
 
 	for node in get_children():
-		if state and node == reference_body: continue
-		if node in stationary_nodes: continue
 		if node is AstroBody:
 			node.sync_to_physics = false
 			node.global_position -= new_origin
@@ -123,16 +124,3 @@ func float_origin(state: PhysicsDirectBodyState3D = null):
 			node.global_position -= new_origin
 		if node.has_method("reset_physics_interpolation"):
 			node.reset_physics_interpolation()
-		
-	for node in stationary_nodes:
-		if node != null:
-			node.global_position -= new_origin
-			if node.has_method("reset_physics_interpolation"):
-				node.reset_physics_interpolation()
-
-	if state:
-		var t = state.transform
-		t.origin = Vector3.ZERO
-		state.transform = t
-	if reference_body.has_method("reset_physics_interpolation"):
-		reference_body.reset_physics_interpolation()

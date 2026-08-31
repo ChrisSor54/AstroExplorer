@@ -43,7 +43,7 @@ func _ready() -> void:
 	for body in all_bodies:
 		if body is AstroBody:
 			orbital_bodies.append(body)
-			if enable_n_body_calculations:
+			if !Engine.is_editor_hint() and enable_n_body_calculations:
 				body.show_orbit = false
 		elif body is AstroRigidBody:
 			rigidbodies.append(body)
@@ -63,10 +63,18 @@ func _ready() -> void:
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
 	if Engine.is_editor_hint():
-		if player:
+		if player and player.spawn_point:
 			#update_relative_velocities(player.linear_velocity)
-			if player.spawn_point and player.global_position != player.spawn_point.global_position:
-				_on_player_spawn_point_set()
+			var home_planet: OrbitalBody = player.spawn_point.get_parent()
+			if player.spawn_point.global_position == home_planet.global_position:
+				return
+			var up_vector = (player.global_position - home_planet.global_position).normalized()
+			var current_quat = player.global_transform.basis.get_rotation_quaternion()
+			var target_quat = (Quaternion(player.global_transform.basis.y, up_vector) * current_quat).normalized()
+			var up_basis = Basis(target_quat)
+			var new_transform = Transform3D(up_basis, player.spawn_point.global_transform.origin)
+			player.global_transform = new_transform
+			player.linear_velocity = home_planet.linear_velocity + home_planet.get_surface_velocity_from(player.spawn_point.global_position)
 
 
 func _physics_process(delta: float) -> void:
@@ -123,20 +131,11 @@ func _on_player_map_opened(is_open: bool, target_position: Vector3 = Vector3.ZER
 		var camera_forward = -map_camera.global_transform.basis.z.normalized()
 		#print("Target: ", target_position, ", Origin: ", map_camera_origin.global_position, ", Position: ", map_camera.position)
 		map_camera.global_position = map_camera_origin.global_position - camera_forward*(largest_apoapsis*(1.15))
+		#map_camera.global_position = map_camera_origin.global_position - camera_forward*(camera_distance)
 	else:
 		map_camera.current = false
 		map_camera.position = Vector3.ZERO
 
-
-func _on_player_spawn_point_set() -> void:
-	if player.spawn_point == null: return
-	if !player.spawn_point.is_inside_tree():
-		player.spawn_point = null
-		return
-	var home_planet: OrbitalBody = player.spawn_point.get_parent()
-	player.global_position = player.spawn_point.global_position
-	player.global_rotation = player.spawn_point.global_rotation
-	player.linear_velocity = home_planet.linear_velocity + home_planet.get_surface_velocity_from(player.spawn_point.global_position)
 
 
 func validate_orbits():

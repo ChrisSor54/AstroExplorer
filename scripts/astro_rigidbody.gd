@@ -6,6 +6,7 @@ var parent_body: AstroBody = null
 var parent_gravity: Vector3 = Vector3.ZERO
 var _current_gravity: Vector3 = Vector3.ZERO
 var _current_strongest_gravity: Vector3 = Vector3.ZERO
+var _current_strongest_tidal_force: Vector3 = Vector3.ZERO
 #var _ground: PhysicsBody3D = null
 #var _is_stuck_to_surface: bool = false
 #var _surface_position: Vector3 = Vector3.ZERO
@@ -25,6 +26,7 @@ func _on_new_frame():
 	parent_gravity = Vector3.ZERO
 	_current_strongest_gravity = Vector3.ZERO
 	_current_gravity = get_gravity()
+	_current_strongest_tidal_force = Vector3.ZERO
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
@@ -39,11 +41,24 @@ func apply_gravitational_force(source_body: PhysicsBody3D, gravity_vector: Vecto
 	_current_gravity += gravity_vector
 	var distance = global_position.distance_to(source_body.global_position)
 	if source_body is AstroBody:
-		if (distance <= (source_body.radius/2) and parent_gravity == Vector3.ZERO) \
-		or (distance <= 2*source_body.radius and gravity_vector.length_squared() >= _current_strongest_gravity.length_squared()):
+		if gravity_vector.length_squared() > _current_strongest_gravity.length_squared():
 			_current_strongest_gravity = gravity_vector
-			parent_gravity = gravity_vector
+		if !is_zero_approx(distance):
+			#if source_body.mass <= mass/3.0: # Since this is used for orbital parenting, don't parent to child bodies
+			var tidal_force = gravity_vector/distance
+			if tidal_force.length_squared() > _current_strongest_tidal_force.length_squared():
+				parent_body = source_body
+				parent_gravity = gravity_vector
+				_current_strongest_tidal_force = tidal_force
+		else:
 			parent_body = source_body
+			parent_gravity = gravity_vector
+			_current_strongest_tidal_force = gravity_vector*999999
+		#if (distance <= (source_body.radius/2) and parent_gravity == Vector3.ZERO) \
+		#or (distance <= 2*source_body.radius and gravity_vector.length_squared() >= _current_strongest_gravity.length_squared()):
+			#_current_strongest_gravity = gravity_vector
+			#parent_gravity = gravity_vector
+			#parent_body = source_body
 
 ## Get the gravitational attraction this body experiences from [param target_body]
 ##

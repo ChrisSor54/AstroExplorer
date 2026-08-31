@@ -115,6 +115,7 @@ func apply_gravitational_force(source_body: PhysicsBody3D, gravity_vector: Vecto
 			_current_strongest_tidal_force = tidal_force
 	else:
 		_current_strongest_tidal_source = source_body
+		_current_strongest_tidal_force = gravity_vector*99999
 	
 
 ## Get the gravitational attraction this body experiences from [param target_body]
