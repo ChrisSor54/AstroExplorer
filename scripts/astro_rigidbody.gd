@@ -13,8 +13,7 @@ var _current_strongest_tidal_force: Vector3 = Vector3.ZERO
 
 
 
-signal integrating_forces(emitter: PhysicsBody3D, state: PhysicsDirectBodyState3D)
-signal physics_processed(emitter: PhysicsBody3D)
+signal integrated_forces(emitter: PhysicsBody3D, state: PhysicsDirectBodyState3D)
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -34,10 +33,10 @@ func _process(delta: float) -> void:
 	pass
 
 func _physics_process(delta: float) -> void:
-	physics_processed.emit(self)
+	pass
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
-	integrating_forces.emit(self, state)
+	integrated_forces.emit(self, state)
 
 
 func apply_gravitational_force(source_body: PhysicsBody3D, gravity_vector: Vector3):

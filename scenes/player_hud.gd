@@ -32,7 +32,7 @@ func _process(delta: float) -> void:
 			if player._ground is AstroBody:
 				surface_velocity += player._ground.get_surface_velocity_from(player.ground_raycast.get_collision_point())
 			var relative_velocity = player.linear_velocity - surface_velocity
-			velocity_text =  "(%.2f, %.2f, %.2f)" % [relative_velocity.x, relative_velocity.y, relative_velocity.z]
+			velocity_text = Global.pretty_vector(relative_velocity)
 			speed_text = str("%.2f" % relative_velocity.length())
 			#debug_label.text = "Not stuck\n" + str(trunc_rvel) + "\n" + )
 		else:
@@ -40,7 +40,7 @@ func _process(delta: float) -> void:
 	debug_label.text = status_text + "\n" + velocity_text + "\n" + speed_text
 	var pos = player.global_position
 	var vel = player.linear_velocity
-	var trunc_position = "(%.2f, %.2f, %.2f)" % [pos.x, pos.y, pos.z]
-	var trunc_velocity = "(%.2f, %.2f, %.2f)" % [vel.x, vel.y, vel.z]
+	var trunc_position = Global.pretty_vector(pos)
+	var trunc_velocity = Global.pretty_vector(vel)
 	debug_label2.text = str("Position: " + trunc_position) + "\nVelocity: " + str(trunc_velocity)
 			

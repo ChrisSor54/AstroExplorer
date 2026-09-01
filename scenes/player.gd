@@ -60,6 +60,7 @@ var _mouse_sensitivity: float = 0.003
 var _mouse_delta: Vector2 = Vector2.ZERO
 var _is_map_open: bool = false
 @export var _ignore_spin: bool = false
+var _rotation_buffer: Vector3 = Vector3.ZERO
 
 
 signal map_opened(is_open: bool, target_position: Vector3, camera_distance: float)
@@ -98,6 +99,60 @@ func _process(_delta: float) -> void:
 	pass
 
 func _physics_process(delta: float) -> void:
+	#var state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(get_rid())
+	#if state:
+		#print(Global.physics_count, " | Player Physics Process => Pos: ", Global.pretty_vector(state.transform.origin), ", Vel: ", Global.pretty_vector(state.linear_velocity))
+	pass
+	#print("player physics")
+	#_ground = ground_raycast.get_collider()
+	#if (_current_strongest_tidal_force/mass).length() >= ZERO_G_THRESHOLD:
+		#if in_zero_G:
+			#_is_reorienting = true
+		#in_zero_G = false
+	#else:
+		##print("zero G")
+		#if !in_zero_G:
+			#_is_reorienting = true
+		#in_zero_G = true
+	#if !is_ragdoll and ground_raycast.is_colliding() and _ground != null:
+		#var up_vector = (global_position-_ground.global_position).normalized()
+		#var relative_velocity = linear_velocity - _ground.linear_velocity
+		#if relative_velocity.dot(up_vector) <= 0.2:
+		###global_position += (ground_raycast.global_position - ground_raycast.get_collision_point())
+			#is_grounded = true
+		#else:
+			#is_grounded = false
+		##is_grounded = true
+	#else:
+		##if is_grounded:
+			##_is_reorienting = true
+		#is_grounded = false
+	#if Input.is_action_just_pressed("ragdoll"):
+		#is_ragdoll = !is_ragdoll
+	#
+	#_process_look_input(delta)
+	#if !is_ragdoll:
+		#lock_rotation = true
+		#angular_velocity = Vector3.ZERO
+		##var up_vector = global_transform.basis.y.normalized()
+		##var forward_vector = -global_transform.basis.z.normalized()
+		##var left_vector = -global_transform.basis.x.normalized()
+		##angular_velocity = angular_velocity.project(forward_vector) + angular_velocity.project(left_vector)
+		##angular_velocity = Vector3.ZERO
+		##lock_rotation = true
+		#_process_orientation(delta)
+		#_process_movement(delta)
+	#else:
+		#lock_rotation = false
+		#_is_stuck_to_surface = false
+	
+	#update_linear_velocity.emit(linear_velocity)
+	#linear_velocity = Vector3.ZERO
+
+
+func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
+	#print(Global.physics_count, " | Integrate Forces => Pos: ", Global.pretty_vector(state.transform.origin), ", Vel: ", Global.pretty_vector(state.linear_velocity))
+	var delta = state.step
 	_ground = ground_raycast.get_collider()
 	if (_current_strongest_tidal_force/mass).length() >= ZERO_G_THRESHOLD:
 		if in_zero_G:
@@ -109,8 +164,8 @@ func _physics_process(delta: float) -> void:
 			_is_reorienting = true
 		in_zero_G = true
 	if !is_ragdoll and ground_raycast.is_colliding() and _ground != null:
-		var up_vector = (global_position-_ground.global_position).normalized()
-		var relative_velocity = linear_velocity - _ground.linear_velocity
+		var up_vector = (state.transform.origin-_ground.global_position).normalized()
+		var relative_velocity = state.linear_velocity - _ground.linear_velocity
 		if relative_velocity.dot(up_vector) <= 0.2:
 		##global_position += (ground_raycast.global_position - ground_raycast.get_collision_point())
 			is_grounded = true
@@ -124,33 +179,30 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("ragdoll"):
 		is_ragdoll = !is_ragdoll
 	
-	_process_look_input(delta)
+	#print("Look =>         Pos: ", get_vector_string(state.transform.origin), ", Vel: ", get_vector_string(state.linear_velocity))
+	#_process_look_input(delta)
 	if !is_ragdoll:
 		lock_rotation = true
 		angular_velocity = Vector3.ZERO
-		#var up_vector = global_transform.basis.y.normalized()
-		#var forward_vector = -global_transform.basis.z.normalized()
-		#var left_vector = -global_transform.basis.x.normalized()
-		#angular_velocity = angular_velocity.project(forward_vector) + angular_velocity.project(left_vector)
-		#angular_velocity = Vector3.ZERO
-		#lock_rotation = true
-		_process_orientation(delta)
-		_process_movement(delta)
+		#print("Orient =>       Pos: ", get_vector_string(state.transform.origin), ", Vel: ", get_vector_string(state.linear_velocity))
+		#_process_state_orientation(state, delta)
+		
+		#print("Move =>         Pos: ", get_vector_string(state.transform.origin), ", Vel: ", get_vector_string(state.linear_velocity))
+		_process_state_movement(state, delta)
 	else:
 		lock_rotation = false
 		_is_stuck_to_surface = false
-	
-	#update_linear_velocity.emit(linear_velocity)
-	#linear_velocity = Vector3.ZERO
-
-
-func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
-	#var delta = state.step
-	#global_position += linear_velocity*delta
-	#global_rotation += angular_velocity*delta
+	#print("Integrate =>    Pos: ", get_vector_string(state.transform.origin), ", Vel: ", get_vector_string(state.linear_velocity))
 	super._integrate_forces(state)
+	if _rotation_buffer != Vector3.ZERO:
+		var rotation_angle = _rotation_buffer.length()
+		var rotation_axis = _rotation_buffer / rotation_angle
+		state.transform.basis = state.transform.basis.rotated(rotation_axis, rotation_angle)
+		_rotation_buffer = Vector3.ZERO
+	if custom_integrator:
+		state.transform.origin += state.linear_velocity * delta
+	#print(Global.physics_count, " | End Integrate Forces => Pos: ", Global.pretty_vector(state.transform.origin), ", Vel: ", Global.pretty_vector(state.linear_velocity))
 	
-
 
 func _process_movement(delta: float) -> void:
 	var forward_vector = -global_transform.basis.z.normalized()
@@ -186,7 +238,7 @@ func _process_movement(delta: float) -> void:
 		
 
 		if !_ignore_spin:
-			global_rotate(up_vector, _ground.angular_velocity.dot(up_vector)*delta)
+			queue_rotation(up_vector, _ground.angular_velocity.dot(up_vector)*delta)
 			#angular_velocity +=  _ground.angular_velocity.project(up_vector)
 		
 		var surface_velocity = _ground.linear_velocity
@@ -213,24 +265,12 @@ func _process_movement(delta: float) -> void:
 				# Check for overlap before getting surface position
 				var overlap = get_overlap_with_ground()
 				if overlap < 0.01:
-					if _is_stuck_to_surface:
-						var target_position = _ground.to_global(_surface_position)
-						var position_delta = target_position - global_position
-						if position_delta.length_squared() > 0:
-							var corrective_velocity = position_delta/delta
-							corrective_velocity -= corrective_velocity.project(up_vector)
-						#print(corrective_velocity.dot(up_vector))
-							apply_force(corrective_velocity*mass)
-					else:
-						_is_stuck_to_surface = true
-						_surface_position = _ground.to_local(global_position)
-					
-
-				#linear_velocity += corrective_velocity
+					stick_to_surface(_ground)
+				apply_central_force(-surface_relative_velocity*mass)
 			else:
 				_is_stuck_to_surface = false
 		if !is_jumping:
-			var deceleration_speed = surface_relative_velocity.length()
+			var deceleration_speed = surface_relative_velocity.length()/10
 			move_vector -= (relative_velocity.normalized()-input_vector)*deceleration_speed*mass/delta
 		#if relative_velocity.length() != 0: print(relative_velocity.length())
 	else:
@@ -239,7 +279,84 @@ func _process_movement(delta: float) -> void:
 	if move_vector != Vector3.ZERO:
 		apply_central_force(move_vector)
 	if rotation_axis != 0:
-		global_rotate(forward_vector, rotation_axis*thrust_strength*delta*delta)
+		#camera_pivot.rotation += 
+		queue_rotation(forward_vector, rotation_axis*thrust_strength*delta*delta)
+
+func _process_state_movement(state: PhysicsDirectBodyState3D, delta: float) -> void:
+	var forward_vector = -state.transform.basis.z.normalized()
+	var left_vector = -state.transform.basis.x.normalized()
+	var up_vector = state.transform.basis.y.normalized()
+	
+	var input_vector = Vector3.ZERO
+	var rotation_axis = 0.0
+	input_vector += Input.get_axis("backward", "forward") * forward_vector
+	input_vector += Input.get_axis("right", "left") * left_vector
+	if !is_grounded:
+		_is_stuck_to_surface = false
+		input_vector += Input.get_axis("fly_down", "fly_up") * up_vector
+	if in_zero_G:
+		_is_stuck_to_surface = false
+		rotation_axis = Input.get_axis("rotate_left", "rotate_right")
+		#print(input_vector)
+
+	var move_vector = Vector3.ZERO
+	if is_grounded:
+		#if parent_body:
+			#up_vector = (global_position - parent_body.global_position).normalized()
+		
+		if input_vector != Vector3.ZERO:
+			input_vector = input_vector.normalized()
+		var is_jumping = Input.is_action_just_pressed("jump")
+		if is_jumping:
+			var impulse_vector = jump_strength*up_vector*mass
+			state.linear_velocity += impulse_vector/mass
+			_ground.apply_impulse(-impulse_vector)
+			_is_stuck_to_surface = false
+			is_grounded = false
+		
+
+		if !_ignore_spin:
+			queue_rotation(up_vector, _ground.angular_velocity.dot(up_vector)*delta)
+			#angular_velocity +=  _ground.angular_velocity.project(up_vector)
+		
+		var surface_velocity = _ground.linear_velocity
+		if _ground is AstroBody:
+			surface_velocity += _ground.get_surface_velocity_from(ground_raycast.get_collision_point())
+		var relative_velocity = state.linear_velocity - surface_velocity
+		var upwards_relative_velocity = relative_velocity.project(up_vector)
+		var surface_relative_velocity = relative_velocity - upwards_relative_velocity
+		#relative_velocity -= upwards_relative_velocity
+		var forward_speed = surface_relative_velocity.dot(input_vector)
+		var target_force = max(walk_speed-forward_speed, 0)
+		if input_vector != Vector3.ZERO:
+			move_vector = input_vector*(target_force*walk_acceleration*mass)
+			_is_stuck_to_surface = false
+		else:
+			pass
+			if !is_jumping and relative_velocity.length_squared() <= 0.2:
+				# Check for overlap before getting surface position
+				#var overlap = get_overlap_with_ground()
+				#if overlap < 0.01:
+					#if _is_stuck_to_surface:
+						#state.transform.origin = _ground.to_global(_surface_position)
+					#else:
+						#_is_stuck_to_surface = true
+						#_surface_position = _ground.to_local(state.transform.origin)
+				state.linear_velocity -= surface_relative_velocity
+			else:
+				_is_stuck_to_surface = false
+		if !is_jumping:
+			var deceleration_speed = surface_relative_velocity.length()/10
+			move_vector -= (relative_velocity.normalized()-input_vector)*deceleration_speed*mass/delta
+		#if relative_velocity.length() != 0: print(relative_velocity.length())
+	else:
+		if input_vector != Vector3.ZERO:
+			move_vector = input_vector*thrust_strength*mass
+	if move_vector != Vector3.ZERO:
+		state.linear_velocity += (move_vector/mass)*delta
+	if rotation_axis != 0:
+		#camera_pivot.rotation += 
+		queue_rotation(forward_vector, rotation_axis*thrust_strength*delta*delta)
 
 
 func _process_look_input(_delta: float) -> void:
@@ -263,7 +380,7 @@ func _process_orientation(delta: float) -> void:
 	_lock_relative_camera_rotation = _is_reorienting
 	if camera_pivot.rotation.y != 0.0:
 		var up_vector = -global_transform.basis.y.normalized()
-		global_rotate(up_vector, camera_pivot.rotation.y)
+		queue_rotation(up_vector, camera_pivot.rotation.y)
 		camera_pivot.rotation.y = 0
 	if !in_zero_G:
 		#var target = _ground if is_grounded else parent_body
@@ -304,7 +421,58 @@ func _process_orientation(delta: float) -> void:
 		var pitch_to_transfer = old_pitch - new_pitch
 		camera_pivot.rotation.x = new_pitch
 		var rotation_delta = Quaternion(left_vector, pitch_to_transfer)
-		global_transform.basis = Basis(rotation_delta * global_transform.basis.get_rotation_quaternion())
+		var new_quat = rotation_delta * global_transform.basis.get_rotation_quaternion()
+		global_transform.basis = Basis(new_quat)
+
+
+func _process_state_orientation(state: PhysicsDirectBodyState3D, delta: float) -> void:
+	var lerp_speed = 6.0
+	_lock_relative_camera_rotation = _is_reorienting
+	if camera_pivot.rotation.y != 0.0:
+		var up_vector = -global_transform.basis.y.normalized()
+		queue_rotation(up_vector, camera_pivot.rotation.y)
+		camera_pivot.rotation.y = 0
+	if !in_zero_G:
+		#var target = _ground if is_grounded else parent_body
+		var target = parent_body
+		var up_vector = (global_position-target.global_position).normalized()
+		#var up_vector = -parent_gravity.normalized()
+		if get_gravity() != Vector3.ZERO:
+			up_vector = -get_gravity().normalized()
+		var current_quat = global_transform.basis.get_rotation_quaternion()
+		var target_quat = (Quaternion(global_transform.basis.y, up_vector) * current_quat).normalized()
+		var angle_offset = current_quat.angle_to(target_quat)
+		if angle_offset >= deg_to_rad(1):
+			lerp_speed = rad_to_deg(1/angle_offset)/10
+		else:
+			lerp_speed = 1/delta
+		#if is_grounded:
+			#lerp_speed = 1/delta
+		var new_quat = current_quat.slerp(target_quat, min(lerp_speed*delta, 1.0))
+		if _lock_relative_camera_rotation:
+			if angle_offset <= 0.02:
+				new_quat = target_quat
+				_is_reorienting = false
+			var camera_right_axis = camera_pivot.global_transform.basis.x
+			var old_forward = current_quat * Vector3.FORWARD
+			var new_forward = new_quat * Vector3.FORWARD
+			var pitch_delta = old_forward.signed_angle_to(new_forward, camera_right_axis)
+			camera_pivot.rotation.x -= pitch_delta
+		state.transform.basis = Basis(new_quat)
+	else:
+		#_is_reorienting = false
+		#if _is_reorienting:
+		var left_vector = global_transform.basis.x.normalized()
+		var old_pitch = camera_pivot.rotation.x
+		var new_pitch = lerp_angle(old_pitch, 0.0, min(lerp_speed*delta, 1.0))
+		if abs(new_pitch) <= 0.001:
+			#new_pitch = 0.0
+			_is_reorienting = false
+		var pitch_to_transfer = old_pitch - new_pitch
+		camera_pivot.rotation.x = new_pitch
+		var rotation_delta = Quaternion(left_vector, pitch_to_transfer)
+		var new_quat = rotation_delta * global_transform.basis.get_rotation_quaternion()
+		state.transform.basis = Basis(new_quat)
 
 
 func get_overlap_with_ground():
@@ -318,3 +486,24 @@ func get_overlap_with_ground():
 		if result.get_collider_rid() == _ground.get_rid():
 			return result.get_collision_depth()
 	return 0.0
+
+
+func stick_to_surface(surface: PhysicsBody3D):
+	#var up_vector = (global_position - surface.lobal_position).normalized()
+	if _is_stuck_to_surface:
+		#var target_position = _ground.to_global(_surface_position)
+		#var position_delta = target_position - global_position
+		#if position_delta.length_squared() > 0:
+			#var corrective_velocity = position_delta/delta
+			#corrective_velocity -= corrective_velocity.project(up_vector)
+		##print(corrective_velocity.dot(up_vector))
+			#apply_force(corrective_velocity*mass)
+		global_position = surface.to_global(_surface_position)
+	else:
+		_is_stuck_to_surface = true
+		_surface_position = surface.to_local(global_position)
+
+
+func queue_rotation(axis: Vector3, angle: float):
+	_rotation_buffer += axis*angle
+	

@@ -10,6 +10,8 @@ var _current_strongest_gravity: Vector3 = Vector3.ZERO
 var _current_strongest_tidal_source: PhysicsBody3D
 var _current_strongest_tidal_force: Vector3 = Vector3.ZERO
 
+signal physics_processed(emitter: AstroBody)
+
 @export
 var enabled: bool = true:
 	set(val):
@@ -75,6 +77,7 @@ func _physics_process(delta: float) -> void:
 		updated_basis *= Basis(Vector3.UP, angular_velocity.length()*delta).orthonormalized()
 		#new_basis *= Basis(angular_velocity.normalized(), angular_velocity.length() * delta)
 	global_transform = Transform3D(updated_basis.orthonormalized(), updated_origin)
+	physics_processed.emit(self)
 	#constant_linear_velocity = Vector3.ZERO
 	#constant_angular_velocity = Vector3.ZERO
 

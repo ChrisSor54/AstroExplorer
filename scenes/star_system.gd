@@ -31,6 +31,7 @@ var validate_orbits_button: Callable = validate_orbits
 @export_tool_button("Print Tree")
 var print_tree_button: Callable = print_tree_pretty
 
+
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	for node in world_origin_controller.get_children():
@@ -56,6 +57,7 @@ func _ready() -> void:
 			body.show_orbit = false
 		Engine.time_scale = time_scale
 		#Engine.physics_ticks_per_second *= sqrt(time_scale)
+		print("Ready: ", player.global_position)
 
 
 
