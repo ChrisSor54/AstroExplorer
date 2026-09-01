@@ -14,6 +14,7 @@ var _current_strongest_tidal_force: Vector3 = Vector3.ZERO
 
 
 signal integrating_forces(emitter: PhysicsBody3D, state: PhysicsDirectBodyState3D)
+signal physics_processed(emitter: PhysicsBody3D)
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -31,7 +32,10 @@ func _on_new_frame():
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
 	pass
-	
+
+func _physics_process(delta: float) -> void:
+	physics_processed.emit(self)
+
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	integrating_forces.emit(self, state)
 

@@ -6,18 +6,23 @@ extends Node3D
 @export var reference_body: PhysicsBody3D:
 	set(new_reference_body):
 		if reference_body:
-			if reference_body is AstroRigidBody and reference_body.is_connected("integrating_forces", _integrate_relative_forces):
-				reference_body.disconnect("integrating_forces", _integrate_relative_forces)
+			if reference_body is AstroRigidBody:
+				if reference_body.is_connected("integrating_forces", _integrate_relative_forces):
+					reference_body.disconnect("integrating_forces", _integrate_relative_forces)
+				#if reference_body.is_connected("physics_processed", on_physics_processed):
+					#reference_body.disconnect("physics_processed", on_physics_processed)
 			reference_body.top_level = false
 		reference_body = new_reference_body
 		if reference_body:
 			if reference_body is AstroRigidBody:
 				reference_body.connect("integrating_forces", _integrate_relative_forces)
+				#reference_body.connect("physics_processed", on_physics_processed)
 			reference_body.top_level = true
 		if Engine.is_editor_hint() and is_inside_tree():
 			center_reference_body()
 
 @export var virtual_origin: Marker3D
+@export var origin_shifting: bool = true
 
 @onready var star_system = get_parent()
 
@@ -46,7 +51,7 @@ func _process(delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint(): return
-	if reference_body:
+	if origin_shifting and reference_body:
 		float_origin(delta)
 	if virtual_origin:
 		virtual_origin.global_position += virtual_reference_velocity*delta
@@ -58,6 +63,7 @@ func _physics_process(delta: float) -> void:
 	#if !Engine.is_editor_hint():
 		#print(reference_body.global_position, ", ", reference_body.linear_velocity)
 	#print(reference_body.global_position, ", ", reference_body.linear_velocity)
+
 
 func center_reference_body():
 	if !reference_body: return
@@ -93,6 +99,18 @@ func center_reference_body():
 				body.redraw_orbital_visualizations()
 
 
+#func on_physics_processed(emitter: PhysicsBody3D):
+	##var relative_velocity = emitter.linear_velocity
+	##for node in get_children():
+		##if node is not PhysicsBody3D: continue
+		###if node is not PhysicsBody3D: continue
+		###if node is RigidBody3D:
+			###node.apply_force(-relative_velocity*node.mass)
+		###else:
+		##node.linear_velocity -= relative_velocity
+	##virtual_reference_velocity -= relative_velocity
+	#pass
+
 func _integrate_relative_forces(emitter: PhysicsBody3D, state: PhysicsDirectBodyState3D):
 	var relative_velocity = state.linear_velocity
 	#print("integrating relative forces, ", relative_velocity, ", ", relative_position)
@@ -104,12 +122,14 @@ func _integrate_relative_forces(emitter: PhysicsBody3D, state: PhysicsDirectBody
 	# repositioning won't cause issues
 	for node in get_children():
 		if node == emitter or node is not PhysicsBody3D: continue
+		#if node is not PhysicsBody3D: continue
 		if node is RigidBody3D:
 			node.apply_force(-relative_velocity*node.mass)
 		else:
 			node.linear_velocity -= relative_velocity
-	
 	virtual_reference_velocity -= relative_velocity
+	pass
+
 
 func float_origin(delta: float):
 	if !reference_body: return

@@ -72,7 +72,7 @@ update_scale = false
 
 [node name="GroundedRayCast" type="RayCast3D" parent="." unique_id=345704609]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
-target_position = Vector3(0, -0.5, 0)
+target_position = Vector3(0, -0.2, 0)
 hit_from_inside = true
 
 [node name="CameraPivot" type="Node3D" parent="." unique_id=72778139]

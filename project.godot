@@ -13,7 +13,7 @@ config_version=5
 config/name="AstroExplorer"
 run/main_scene="uid://d2522tb5vji20"
 config/features=PackedStringArray("4.7", "Forward Plus")
-config/icon="res://icon.svg"
+config/icon="uid://dotr0228ccn6b"
 
 [display]
 
@@ -102,7 +102,6 @@ ragdoll={
 [physics]
 
 3d/physics_engine="Jolt Physics"
-jolt_physics_3d/simulation/position_steps=4
 3d/default_gravity=0.0
 3d/default_gravity_vector=Vector3(0, 0, 0)
 3d/default_linear_damp=0.0
