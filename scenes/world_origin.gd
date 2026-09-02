@@ -167,9 +167,9 @@ func float_origin():
 	for node in get_children():
 		if node is AstroBody:
 			node.sync_to_physics = false
-			node.global_position -= new_origin
+			node.global_transform.origin -= new_origin
 			node.sync_to_physics = true
 		else:
-			node.global_position -= new_origin
+			node.global_transform.origin -= new_origin
 		if node.has_method("reset_physics_interpolation"):
 			node.reset_physics_interpolation()
