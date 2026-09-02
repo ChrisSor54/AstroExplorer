@@ -153,33 +153,32 @@ enable_n_body_calculations = true
 environment = SubResource("Environment_lfxu0")
 
 [node name="MapCameraOrigin" type="Marker3D" parent="." unique_id=343246540]
-transform = Transform3D(1, 0, 0, 0, 0.9999997, 0, 0, 0, 0.9999997, 0, 0.0005722046, -23806.523)
+transform = Transform3D(1, 0, 0, 0, 0.9999997, 0, 0, 0, 0.9999997, 0, 0.0005722046, -23792.629)
 
 [node name="MapCamera" type="Camera3D" parent="MapCameraOrigin" unique_id=1733701076]
 transform = Transform3D(-4.371139e-08, 1, 4.371139e-08, 0, -4.371139e-08, 1, 1, 4.371139e-08, 1.9106855e-15, 0, 0, 0)
 fov = 100.0
 far = 500000.0
 
-[node name="WorldOriginController" type="Node3D" parent="." unique_id=1496961808 node_paths=PackedStringArray("virtual_origin")]
+[node name="WorldOriginController" type="Node3D" parent="." unique_id=1496961808 node_paths=PackedStringArray("reference_body", "virtual_origin")]
 top_level = true
 script = ExtResource("3_ya4ey")
+reference_body = NodePath("Player")
 virtual_origin = NodePath("VirtualOrigin")
 origin_shifting = false
 
 [node name="VirtualOrigin" type="Marker3D" parent="WorldOriginController" unique_id=335965371]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0005722046, -23806.523)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0005722046, -23792.629)
 top_level = true
 
 [node name="Star" type="AnimatableBody3D" parent="WorldOriginController" unique_id=256424575 node_paths=PackedStringArray("collision_shape", "mesh", "orbital_line_visualization", "gravity_well_visualization", "barycenter_visualization", "child_bodies")]
-process_mode = 4
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0005722046, -23806.523)
-visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0005722046, -23792.629)
 script = ExtResource("3_tbgi4")
 collision_shape = NodePath("CollisionShape3D")
 mesh = NodePath("Mesh")
-orbital_line_visualization = NodePath("@MeshInstance3D@111817")
-gravity_well_visualization = NodePath("@MeshInstance3D@111816")
-barycenter_visualization = NodePath("@Sprite3D@111818")
+orbital_line_visualization = NodePath("@MeshInstance3D@22013")
+gravity_well_visualization = NodePath("@MeshInstance3D@22012")
+barycenter_visualization = NodePath("@Sprite3D@22014")
 body_name = "Star"
 surface_height = 800.0
 surface_gravity = 60.0
@@ -189,7 +188,6 @@ NodePath("../Planet3"): true,
 NodePath("../HomePlanet"): true
 }
 show_orbit = false
-enabled = false
 radius = 800.0
 mass = 38400000.0
 metadata/_edit_lock_ = true
@@ -216,14 +214,14 @@ update_scale = false
 
 [node name="Planet2" type="AnimatableBody3D" parent="WorldOriginController" unique_id=927699427 node_paths=PackedStringArray("collision_shape", "mesh", "orbital_line_visualization", "gravity_well_visualization", "barycenter_visualization", "parent_body")]
 process_mode = 4
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0005722046, -27556.523)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0005722046, -27542.629)
 visible = false
 script = ExtResource("3_tbgi4")
 collision_shape = NodePath("CollisionShape3D")
 mesh = NodePath("Mesh")
-orbital_line_visualization = NodePath("@MeshInstance3D@111820")
-gravity_well_visualization = NodePath("@MeshInstance3D@111819")
-barycenter_visualization = NodePath("@Sprite3D@111821")
+orbital_line_visualization = NodePath("@MeshInstance3D@22016")
+gravity_well_visualization = NodePath("@MeshInstance3D@22015")
+barycenter_visualization = NodePath("@Sprite3D@22017")
 body_name = "Planet2"
 surface_height = 100.0
 surface_gravity = 10.0
@@ -249,14 +247,14 @@ surface_material_override/0 = SubResource("StandardMaterial3D_ya4ey")
 transform = Transform3D(1, 0, 0, 0, -4.284084e-08, 1, 0, -1, -4.284084e-08, 0, 0, -51.415)
 
 [node name="HomePlanet" type="AnimatableBody3D" parent="WorldOriginController" unique_id=1755902633 node_paths=PackedStringArray("collision_shape", "mesh", "orbital_line_visualization", "gravity_well_visualization", "barycenter_visualization", "parent_body", "child_bodies")]
-transform = Transform3D(1, 0, 0, 0, 0.91775465, 0.3971479, 0, -0.3971479, 0.91775465, 0, 0.0005722046, 193.4668)
+transform = Transform3D(1, 0, 0, 0, 0.91775465, 0.3971479, 0, -0.3971479, 0.91775465, 0, 0.0005722046, 207.36133)
 physics_material_override = SubResource("PhysicsMaterial_g2els")
 script = ExtResource("3_tbgi4")
 collision_shape = NodePath("CollisionShape3D")
 mesh = NodePath("Mesh")
-orbital_line_visualization = NodePath("@MeshInstance3D@111823")
-gravity_well_visualization = NodePath("@MeshInstance3D@111822")
-barycenter_visualization = NodePath("@Sprite3D@111824")
+orbital_line_visualization = NodePath("@MeshInstance3D@22019")
+gravity_well_visualization = NodePath("@MeshInstance3D@22018")
+barycenter_visualization = NodePath("@Sprite3D@22020")
 body_name = "Planet"
 surface_height = 175.0
 surface_gravity = 9.8
@@ -308,18 +306,18 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 69.89258, -161.51367)
 
 [node name="Moon" type="AnimatableBody3D" parent="WorldOriginController" unique_id=1768735610 node_paths=PackedStringArray("collision_shape", "mesh", "orbital_line_visualization", "gravity_well_visualization", "barycenter_visualization", "parent_body")]
 process_mode = 4
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0005722046, 943.7568)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0005722046, 957.6505)
 visible = false
 script = ExtResource("3_tbgi4")
 collision_shape = NodePath("CollisionShape3D")
 mesh = NodePath("Mesh")
-orbital_line_visualization = NodePath("@MeshInstance3D@111826")
-gravity_well_visualization = NodePath("@MeshInstance3D@111825")
-barycenter_visualization = NodePath("@Sprite3D@111827")
+orbital_line_visualization = NodePath("@MeshInstance3D@22022")
+gravity_well_visualization = NodePath("@MeshInstance3D@22021")
+barycenter_visualization = NodePath("@Sprite3D@22023")
 body_name = "Moon"
 surface_height = 30.0
 surface_gravity = 5.0
-rotational_period = 235.70702099394214
+rotational_period = 235.70702099394217
 parent_body = NodePath("../HomePlanet")
 orbit = SubResource("Resource_85g3d")
 enabled = false
@@ -342,14 +340,14 @@ transform = Transform3D(1, 0, 0, 0, -4.284084e-08, 1, 0, -1, -4.284084e-08, 0, 0
 
 [node name="Planet3" type="AnimatableBody3D" parent="WorldOriginController" unique_id=381027270 node_paths=PackedStringArray("collision_shape", "mesh", "orbital_line_visualization", "gravity_well_visualization", "barycenter_visualization", "parent_body")]
 process_mode = 4
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18978.266, 656.10364, -17529.523)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18978.266, 656.10364, -17515.629)
 visible = false
 script = ExtResource("3_tbgi4")
 collision_shape = NodePath("CollisionShape3D")
 mesh = NodePath("Mesh")
-orbital_line_visualization = NodePath("@MeshInstance3D@111829")
-gravity_well_visualization = NodePath("@MeshInstance3D@111828")
-barycenter_visualization = NodePath("@Sprite3D@111830")
+orbital_line_visualization = NodePath("@MeshInstance3D@22025")
+gravity_well_visualization = NodePath("@MeshInstance3D@22024")
+barycenter_visualization = NodePath("@Sprite3D@22026")
 body_name = "Planet3"
 surface_height = 300.0
 surface_gravity = 15.0
@@ -375,8 +373,8 @@ surface_material_override/0 = SubResource("StandardMaterial3D_trceg")
 transform = Transform3D(1, 0, 0, 0, -4.284084e-08, 1, 0, -1, -4.284084e-08, 0, 0, -51.415)
 
 [node name="Player" parent="WorldOriginController" unique_id=1916186712 instance=ExtResource("4_jyhfs")]
-transform = Transform3D(0.81766033, 2.3841858e-07, -0.575701, 0.575701, -2.026558e-06, 0.81766033, -9.536743e-07, -1, -1.7881393e-06, 0, 0, -13.893744)
-mass = 70.0
+transform = Transform3D(0.81766033, 2.3841858e-07, -0.575701, 0.575701, -2.026558e-06, 0.81766033, -9.536743e-07, -1, -1.7881393e-06, 0, 0, 0)
+top_level = true
 lock_rotation = false
 custom_integrator = true
 angular_damp = 10.0

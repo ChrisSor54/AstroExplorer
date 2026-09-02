@@ -12,8 +12,10 @@ var _current_strongest_tidal_force: Vector3 = Vector3.ZERO
 #var _surface_position: Vector3 = Vector3.ZERO
 
 
-
+signal force_applied(emitter: PhysicsBody3D, force: Vector3, offset: Vector3)
+signal impulse_applied(emitter: PhysicsBody3D, impulse: Vector3, offset: Vector3)
 signal integrated_forces(emitter: PhysicsBody3D, state: PhysicsDirectBodyState3D)
+signal physics_processed(emitter: PhysicsBody3D)
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -33,14 +35,14 @@ func _process(delta: float) -> void:
 	pass
 
 func _physics_process(delta: float) -> void:
-	pass
+	physics_processed.emit(self)
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	integrated_forces.emit(self, state)
 
 
 func apply_gravitational_force(source_body: PhysicsBody3D, gravity_vector: Vector3):
-	apply_central_force(gravity_vector)
+	force_applied.emit(self, gravity_vector)
 	_current_gravity += gravity_vector
 	var distance = global_position.distance_to(source_body.global_position)
 	if source_body is AstroBody:
@@ -56,7 +58,7 @@ func apply_gravitational_force(source_body: PhysicsBody3D, gravity_vector: Vecto
 		else:
 			parent_body = source_body
 			parent_gravity = gravity_vector
-			_current_strongest_tidal_force = gravity_vector*999999
+			_current_strongest_tidal_force = gravity_vector*INF
 		#if (distance <= (source_body.radius/2) and parent_gravity == Vector3.ZERO) \
 		#or (distance <= 2*source_body.radius and gravity_vector.length_squared() >= _current_strongest_gravity.length_squared()):
 			#_current_strongest_gravity = gravity_vector

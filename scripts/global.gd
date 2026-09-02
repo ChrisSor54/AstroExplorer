@@ -15,7 +15,7 @@ func pretty_vector(vector: Vector3):
 			val = vector.y
 		else:
 			val = vector.z
-		var val_text = "+" if val >= 0.0 else "-"
+		var val_text = "+" if val >= 0.0 else ""
 		val_text += "%.8f"
 		text += (val_text % val)
 		if i != 2:

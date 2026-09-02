@@ -6,19 +6,29 @@ extends Node3D
 @export var reference_body: PhysicsBody3D:
 	set(new_reference_body):
 		if reference_body:
-			if reference_body is AstroBody:
-				if reference_body.is_connected("physics_processed", on_physics_processed):
-					reference_body.disconnect("physics_processed", on_physics_processed)
-			elif reference_body is AstroRigidBody:
-				if reference_body.is_connected("integrated_forces", on_integrate_forces):
-					reference_body.disconnect("integrated_forces", on_integrate_forces)
+			if reference_body.is_connected("physics_processed", on_physics_processed):
+				reference_body.disconnect("physics_processed", on_physics_processed)
+			if reference_body is AstroRigidBody:
+				reference_body.custom_integrator = false
+				var rid = reference_body.get_rid()
+				PhysicsServer3D.body_set_force_integration_callback(rid, Callable())
+				#if reference_body.is_connected("integrated_forces", on_integrate_forces):
+					#reference_body.disconnect("integrated_forces", on_integrate_forces)
+				if reference_body.is_connected("force_applied", apply_controlled_force):
+					reference_body.disconnect("force_applied", apply_controlled_force)
+				if reference_body.is_connected("impulse_applied", apply_controlled_impulse):
+					reference_body.disconnect("impulse_applied", apply_controlled_impulse)
 			reference_body.top_level = false
 		reference_body = new_reference_body
 		if reference_body:
-			if reference_body is AstroBody:
-				reference_body.connect("physics_processed", on_physics_processed)
-			elif reference_body is AstroRigidBody:
-				reference_body.connect("integrated_forces", on_integrate_forces)
+			reference_body.connect("physics_processed", on_physics_processed)
+			if reference_body is AstroRigidBody:
+				reference_body.custom_integrator = true
+				var rid = reference_body.get_rid()
+				PhysicsServer3D.body_set_force_integration_callback(rid, integrate_force)
+				reference_body.connect("force_applied", apply_controlled_force)
+				reference_body.connect("impulse_applied", apply_controlled_impulse)
+				#reference_body.connect("integrated_forces", on_integrate_forces)
 			reference_body.top_level = true
 		if Engine.is_editor_hint() and is_inside_tree():
 			center_reference_body()
@@ -28,8 +38,6 @@ extends Node3D
 
 @onready var star_system = get_parent()
 
-### The "virtual" position of the reference body, relative to the original world origin
-#var virtual_reference_position: Vector3 = Vector3.ZERO
 ## The "virtual" velocity of the reference body, relative to the original world origin
 var virtual_reference_velocity: Vector3 = Vector3.ZERO
 
@@ -44,43 +52,82 @@ var center_reference_body_button: Callable = center_reference_body
 func _ready() -> void:
 	if virtual_origin and virtual_origin in stationary_nodes:
 		stationary_nodes.erase(virtual_origin)
-	#for child in get_children():
-		#if child is AstroBody:
-			#if !child.is_connected("physics_processed", on_physics_processed):
-				#child.connect("physics_processed", on_physics_processed)
-		#if child is AstroRigidBody:
-			#if !child.is_connected("integrating_forces", on_integrate_forces):
-				#child.connect("integrating_forces", on_integrate_forces)
-	
-	#float_origin()
+
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	pass
 
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint(): return
-	#if origin_shifting and reference_body:
-		#float_origin(delta)
 	if virtual_origin:
 		virtual_origin.global_position += virtual_reference_velocity*delta
 	for node in stationary_nodes:
 		if node != null:
 			node.global_position += virtual_reference_velocity*delta
-		#if reference_body.global_position != Vector3.ZERO:
-			#float_origin()
-	#if !Engine.is_editor_hint():
-		#print(reference_body.global_position, ", ", reference_body.linear_velocity)
-	#print(reference_body.global_position, ", ", reference_body.linear_velocity)
+
+
+
+func integrate_force(state: PhysicsDirectBodyState3D):
+	var relative_velocity = state.linear_velocity
+	#state.linear_velocity = Vector3.ZERO # Zero out velocity
+	state.linear_velocity = Vector3.ZERO
+	
+	# Since velocity is relative, the players position is only offset by collisions,
+	# however it's still best to try and keep them near the origin during times where
+	# repositioning won't cause issues
+	for node in get_children():
+		if node == reference_body or node is not PhysicsBody3D: continue
+		#if node is not PhysicsBody3D: continue
+		if node is RigidBody3D:
+			node.apply_force(-relative_velocity*node.mass)
+		else:
+			node.linear_velocity -= relative_velocity
+	virtual_reference_velocity -= relative_velocity
+	
+	# Apply angular velocity
+	state.angular_velocity *= max(1.0 - reference_body.angular_damp * state.step, 0.0)
+	var angle = state.angular_velocity.length()
+	if angle > 0.0001:
+		var axis = state.angular_velocity / angle
+		state.transform.basis = state.transform.basis.rotated(axis, angle * state.step)
+	#float_origin(state)
+
+func on_physics_processed(_emitter: PhysicsBody3D):
+	if reference_body is AstroBody:
+		var relative_velocity = reference_body.linear_velocity
+		for node in get_children():
+			if node is not PhysicsBody3D: continue
+			node.linear_velocity -= relative_velocity
+		virtual_reference_velocity -= relative_velocity
+	
+	if origin_shifting and reference_body.global_position != Vector3.ZERO:
+		float_origin()
+
+
+func apply_controlled_force(target: PhysicsBody3D, force: Vector3, _offset: Vector3 = Vector3.ZERO):
+	if target == reference_body:
+		var acceleration = force/target.mass
+		for node in get_children():
+			if node == reference_body or (node is not AstroBody and node is not RigidBody3D): continue
+			node.apply_force(-acceleration*node.mass)
+	else:
+		target.apply_force(force)
+
+
+func apply_controlled_impulse(target: PhysicsBody3D, impulse: Vector3, _offset: Vector3 = Vector3.ZERO):
+	if target == reference_body:
+		var acceleration = impulse/target.mass
+		for node in get_children():
+			if node == reference_body or (node is not AstroBody and node is not RigidBody3D): continue
+			node.apply_impulse(-acceleration*node.mass)
+	else:
+		target.apply_impulse(impulse)
 
 
 func center_reference_body():
 	if !reference_body: return
 	print("Centering reference body")
-	var spawn_point
-	#if reference_body is Player and reference_body.spawn_point:
-		#spawn_point = reference_body.spawn_point
-		#reference_body.spawn_point = null
 	var new_origin = reference_body.global_position
 	var relative_velocity = Vector3.ZERO
 	if reference_body is AstroRigidBody:
@@ -94,13 +141,11 @@ func center_reference_body():
 			node.sync_to_physics = true
 		else:
 			node.global_position -= new_origin
-		#if node is AstroBody or node is AstroRigidBody:
-			#node.linear_velocity -= relative_velocity
+		if node is AstroBody or node is AstroRigidBody:
+			node.linear_velocity -= relative_velocity
 	reference_body.global_position = Vector3.ZERO
-	#if reference_body is AstroRigidBody or reference_body is AstroBody:
-		#reference_body.linear_velocity = Vector3.ZERO
-	#if reference_body is Player:
-		#reference_body.spawn_point = spawn_point
+	if reference_body is AstroRigidBody or reference_body is AstroBody:
+		reference_body.linear_velocity = Vector3.ZERO
 	
 	for node in stationary_nodes:
 		if node != null:
@@ -115,40 +160,7 @@ func center_reference_body():
 				body.redraw_orbital_visualizations()
 
 
-func on_physics_processed(emitter: PhysicsBody3D):
-	#var relative_velocity = emitter.linear_velocity
-	#for node in get_children():
-		#if node is not PhysicsBody3D: continue
-		##if node is not PhysicsBody3D: continue
-		##if node is RigidBody3D:
-			##node.apply_force(-relative_velocity*node.mass)
-		##else:
-		#node.linear_velocity -= relative_velocity
-	#virtual_reference_velocity -= relative_velocity
-	pass
-
-func on_integrate_forces(emitter: PhysicsBody3D, state: PhysicsDirectBodyState3D):
-	
-	#print("integrating relative forces, ", relative_velocity, ", ", relative_position)
-	var relative_velocity = state.linear_velocity
-	print(relative_velocity)
-	state.linear_velocity = Vector3.ZERO # Zero out velocity
-	
-	# Since velocity is relative, the players position is only offset by collisions,
-	# however it's still best to try and keep them near the origin during times where
-	# repositioning won't cause issues
-	for node in get_children():
-		if node == emitter or node is not PhysicsBody3D: continue
-		#if node is not PhysicsBody3D: continue
-		if node is RigidBody3D:
-			node.apply_force(-relative_velocity*node.mass)
-		else:
-			node.linear_velocity -= relative_velocity
-	virtual_reference_velocity -= relative_velocity
-	pass
-
-
-func float_origin(delta: float):
+func float_origin():
 	if !reference_body: return
 	var new_origin = reference_body.global_position
 

@@ -63,7 +63,7 @@ func _ready() -> void:
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	if Engine.is_editor_hint():
 		if player and player.spawn_point:
 			#update_relative_velocities(player.linear_velocity)
@@ -84,7 +84,7 @@ func _physics_process(delta: float) -> void:
 	process_gravity(delta)
 
 
-func process_gravity(delta: float) -> void:
+func process_gravity(_delta: float) -> void:
 	for body in all_bodies:
 		body._on_new_frame()
 	
@@ -100,6 +100,7 @@ func process_gravity(delta: float) -> void:
 
 func apply_n_body_gravity(target: PhysicsBody3D) -> void:
 	if target is not AstroBody and target is not AstroRigidBody: return
+	@warning_ignore("incompatible_ternary")
 	var source_bodies = all_bodies if rigidbodies_produce_gravity else orbital_bodies
 	for source_body in source_bodies:
 		if source_body == target: continue
