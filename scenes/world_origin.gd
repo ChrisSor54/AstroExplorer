@@ -14,10 +14,6 @@ extends Node3D
 				PhysicsServer3D.body_set_force_integration_callback(rid, Callable())
 				#if reference_body.is_connected("integrated_forces", on_integrate_forces):
 					#reference_body.disconnect("integrated_forces", on_integrate_forces)
-				if reference_body.is_connected("force_applied", apply_controlled_force):
-					reference_body.disconnect("force_applied", apply_controlled_force)
-				if reference_body.is_connected("impulse_applied", apply_controlled_impulse):
-					reference_body.disconnect("impulse_applied", apply_controlled_impulse)
 			reference_body.top_level = false
 		reference_body = new_reference_body
 		if reference_body:
@@ -26,8 +22,6 @@ extends Node3D
 				reference_body.custom_integrator = true
 				var rid = reference_body.get_rid()
 				PhysicsServer3D.body_set_force_integration_callback(rid, integrate_force)
-				reference_body.connect("force_applied", apply_controlled_force)
-				reference_body.connect("impulse_applied", apply_controlled_impulse)
 				#reference_body.connect("integrated_forces", on_integrate_forces)
 			reference_body.top_level = true
 		if Engine.is_editor_hint() and is_inside_tree():
@@ -52,6 +46,16 @@ var center_reference_body_button: Callable = center_reference_body
 func _ready() -> void:
 	if virtual_origin and virtual_origin in stationary_nodes:
 		stationary_nodes.erase(virtual_origin)
+		
+	# WorldOriginController is in charge of all forces to maintain relative velocities and positions
+	for node in get_children():
+		if node is AstroBody or node is AstroRigidBody:
+			if !node.is_connected("force_applied", apply_controlled_force):
+				node.connect("force_applied", apply_controlled_force)
+			if !node.is_connected("impulse_applied", apply_controlled_impulse):
+				node.connect("impulse_applied", apply_controlled_impulse)
+			if !node.is_connected("position_shifted", apply_controlled_shift):
+				node.connect("position_shifted", apply_controlled_shift)
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -60,6 +64,8 @@ func _process(_delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint(): return
+	if origin_shifting:
+		float_origin()
 	if virtual_origin:
 		virtual_origin.global_position += virtual_reference_velocity*delta
 	for node in stationary_nodes:
@@ -100,9 +106,6 @@ func on_physics_processed(_emitter: PhysicsBody3D):
 			if node is not PhysicsBody3D: continue
 			node.linear_velocity -= relative_velocity
 		virtual_reference_velocity -= relative_velocity
-	
-	if origin_shifting and reference_body.global_position != Vector3.ZERO:
-		float_origin()
 
 
 func apply_controlled_force(target: PhysicsBody3D, force: Vector3, _offset: Vector3 = Vector3.ZERO):
@@ -123,6 +126,26 @@ func apply_controlled_impulse(target: PhysicsBody3D, impulse: Vector3, _offset: 
 			node.apply_impulse(-acceleration*node.mass)
 	else:
 		target.apply_impulse(impulse)
+
+
+func apply_controlled_shift(target: PhysicsBody3D, position_delta: Vector3):
+	if target == reference_body:
+		#var position_delta = new_position - reference_body.global_position # This should probably always be Vector3.ZERO
+		for node in get_children():
+			if node == reference_body or (node is not AstroBody and node is not RigidBody3D): continue
+			if node is AstroBody:
+				node.sync_to_physics = false
+				node.global_position -= position_delta
+				node.sync_to_physics = true
+			else:
+				node.global_position -= position_delta
+	else:
+		if target is AstroBody:
+			target.sync_to_physics = false
+			target.global_position += position_delta
+			target.sync_to_physics = true
+		else:
+			target.global_position += position_delta
 
 
 func center_reference_body():
@@ -165,6 +188,7 @@ func float_origin():
 	var new_origin = reference_body.global_position
 
 	for node in get_children():
+		if node == reference_body: continue
 		if node is AstroBody:
 			node.sync_to_physics = false
 			node.global_transform.origin -= new_origin
@@ -173,3 +197,6 @@ func float_origin():
 			node.global_transform.origin -= new_origin
 		if node.has_method("reset_physics_interpolation"):
 			node.reset_physics_interpolation()
+	reference_body.global_position = Vector3.ZERO
+	if reference_body.has_method("reset_physics_interpolation"):
+		reference_body.reset_physics_interpolation()

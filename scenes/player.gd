@@ -125,6 +125,10 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("ragdoll"):
 		is_ragdoll = !is_ragdoll
 	
+	if is_grounded and !_ignore_spin:
+		var up_vector = (global_position - _ground.global_position).normalized()
+		global_rotate(up_vector, _ground.angular_velocity.dot(up_vector)*delta)
+	
 	_process_look_input(delta)
 	if !is_ragdoll:
 		lock_rotation = true
@@ -233,8 +237,7 @@ func _process_movement(delta: float) -> void:
 			is_grounded = false
 		
 
-		if !_ignore_spin:
-			global_rotate(up_vector, _ground.angular_velocity.dot(up_vector)*delta)
+		
 			#angular_velocity +=  _ground.angular_velocity.project(up_vector)
 		
 		var surface_velocity = _ground.linear_velocity
@@ -256,26 +259,33 @@ func _process_movement(delta: float) -> void:
 				var overlap = get_overlap_with_ground()
 				if overlap < 0.01:
 					if _is_stuck_to_surface:
-						var position_delta = global_position - _ground.to_global(_surface_position)
-						impulse_applied.emit(self, -position_delta*mass)
+						var position_delta = _ground.to_global(_surface_position) - global_position
+						#impulse_applied.emit(self, -position_delta*mass)
+						position_shifted.emit(self, position_delta)
+						print(global_position)
 					else:
 						_is_stuck_to_surface = true
 						_surface_position = _ground.to_local(global_position)
-					impulse_applied.emit(self, -surface_relative_velocity*mass)
+					impulse_applied.emit(self, -relative_velocity*mass)
 			else:
 				_is_stuck_to_surface = false
-		if !is_jumping:
+		if !is_jumping and !_is_stuck_to_surface:
 			var relative_speed = surface_relative_velocity.length()
 			var deceleration_speed = clampf(walk_acceleration, relative_speed/10, relative_speed)
-			move_vector -= (relative_velocity.normalized()-input_vector)*deceleration_speed*mass/delta
+			move_vector -= (surface_relative_velocity.normalized()-input_vector)*deceleration_speed*mass/delta
+			if relative_velocity.dot(up_vector) < 0:
+				force_applied.emit(self, -parent_gravity)
+				#move_vector -= upwards_relative_velocity*mass/delta
+				print(relative_velocity.dot(up_vector))
+		
 		#if relative_velocity.length() != 0: print(relative_velocity.length())
 	else:
 		if input_vector != Vector3.ZERO:
 			move_vector = input_vector*thrust_strength*mass
 	if move_vector != Vector3.ZERO:
 		force_applied.emit(self, move_vector)
-	if rotation_axis != 0:
-		global_rotate(forward_vector, rotation_axis*thrust_strength*delta*delta)
+	#if rotation_axis != 0:
+		#global_rotate(forward_vector, rotation_axis*thrust_strength*delta*delta)
 
 
 func _process_look_input(_delta: float) -> void:
@@ -311,10 +321,10 @@ func _process_orientation(delta: float) -> void:
 		var current_quat = global_transform.basis.get_rotation_quaternion()
 		var target_quat = (Quaternion(global_transform.basis.y, up_vector) * current_quat).normalized()
 		var angle_offset = current_quat.angle_to(target_quat)
-		if angle_offset >= deg_to_rad(1):
-			lerp_speed = rad_to_deg(1/angle_offset)/10
-		else:
-			lerp_speed = 1/delta
+		#if angle_offset >= deg_to_rad(1):
+			#lerp_speed = rad_to_deg(1/angle_offset)/10
+		#else:
+		lerp_speed = 1/delta
 		#if is_grounded:
 			#lerp_speed = 1/delta
 		var new_quat = current_quat.slerp(target_quat, min(lerp_speed*delta, 1.0))
@@ -344,56 +354,6 @@ func _process_orientation(delta: float) -> void:
 		global_transform.basis = Basis(new_quat)
 
 
-#func _process_state_orientation(state: PhysicsDirectBodyState3D, delta: float) -> void:
-	#var lerp_speed = 6.0
-	#_lock_relative_camera_rotation = _is_reorienting
-	#if camera_pivot.rotation.y != 0.0:
-		#var up_vector = -global_transform.basis.y.normalized()
-		#queue_rotation(up_vector, camera_pivot.rotation.y)
-		#camera_pivot.rotation.y = 0
-	#if !in_zero_G:
-		##var target = _ground if is_grounded else parent_body
-		#var target = parent_body
-		#var up_vector = (global_position-target.global_position).normalized()
-		##var up_vector = -parent_gravity.normalized()
-		#if get_gravity() != Vector3.ZERO:
-			#up_vector = -get_gravity().normalized()
-		#var current_quat = global_transform.basis.get_rotation_quaternion()
-		#var target_quat = (Quaternion(global_transform.basis.y, up_vector) * current_quat).normalized()
-		#var angle_offset = current_quat.angle_to(target_quat)
-		#if angle_offset >= deg_to_rad(1):
-			#lerp_speed = rad_to_deg(1/angle_offset)/10
-		#else:
-			#lerp_speed = 1/delta
-		##if is_grounded:
-			##lerp_speed = 1/delta
-		#var new_quat = current_quat.slerp(target_quat, min(lerp_speed*delta, 1.0))
-		#if _lock_relative_camera_rotation:
-			#if angle_offset <= 0.02:
-				#new_quat = target_quat
-				#_is_reorienting = false
-			#var camera_right_axis = camera_pivot.global_transform.basis.x
-			#var old_forward = current_quat * Vector3.FORWARD
-			#var new_forward = new_quat * Vector3.FORWARD
-			#var pitch_delta = old_forward.signed_angle_to(new_forward, camera_right_axis)
-			#camera_pivot.rotation.x -= pitch_delta
-		#state.transform.basis = Basis(new_quat)
-	#else:
-		##_is_reorienting = false
-		##if _is_reorienting:
-		#var left_vector = global_transform.basis.x.normalized()
-		#var old_pitch = camera_pivot.rotation.x
-		#var new_pitch = lerp_angle(old_pitch, 0.0, min(lerp_speed*delta, 1.0))
-		#if abs(new_pitch) <= 0.001:
-			##new_pitch = 0.0
-			#_is_reorienting = false
-		#var pitch_to_transfer = old_pitch - new_pitch
-		#camera_pivot.rotation.x = new_pitch
-		#var rotation_delta = Quaternion(left_vector, pitch_to_transfer)
-		#var new_quat = rotation_delta * global_transform.basis.get_rotation_quaternion()
-		#state.transform.basis = Basis(new_quat)
-
-
 func get_overlap_with_ground():
 	if _ground == null:
 		return 0.0
@@ -405,25 +365,3 @@ func get_overlap_with_ground():
 		if result.get_collider_rid() == _ground.get_rid():
 			return result.get_collision_depth()
 	return 0.0
-
-#
-#func stick_to_surface(surface: PhysicsBody3D):
-	##var up_vector = (global_position - surface.lobal_position).normalized()
-	#if _is_stuck_to_surface:
-		##var target_position = _ground.to_global(_surface_position)
-		##var position_delta = target_position - global_position
-		##if position_delta.length_squared() > 0:
-			##var corrective_velocity = position_delta/delta
-			##corrective_velocity -= corrective_velocity.project(up_vector)
-		###print(corrective_velocity.dot(up_vector))
-			##apply_force(corrective_velocity*mass)
-		#force_applied.emit()
-		##global_position = surface.to_global(_surface_position)
-	#else:
-		#_is_stuck_to_surface = true
-		#_surface_position = surface.to_local(global_position)
-
-#
-#func queue_rotation(axis: Vector3, angle: float):
-	#_rotation_buffer += axis*angle
-	
