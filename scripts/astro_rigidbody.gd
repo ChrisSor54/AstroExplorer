@@ -1,6 +1,7 @@
 class_name AstroRigidBody
 extends RigidBody3D
 
+@export var disable_gravity: bool = false
 
 var parent_body: AstroBody = null
 var parent_gravity: Vector3 = Vector3.ZERO
@@ -43,6 +44,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
 
 func apply_gravitational_force(source_body: PhysicsBody3D, gravity_vector: Vector3):
+	if disable_gravity: return
 	force_applied.emit(self, gravity_vector)
 	_current_gravity += gravity_vector
 	var distance = global_position.distance_to(source_body.global_position)

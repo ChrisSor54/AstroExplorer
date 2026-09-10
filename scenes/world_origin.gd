@@ -33,7 +33,7 @@ extends Node3D
 @onready var star_system = get_parent()
 
 ## The "virtual" velocity of the reference body, relative to the original world origin
-var virtual_reference_velocity: Vector3 = Vector3.ZERO
+@export var virtual_reference_velocity: Vector3 = Vector3.ZERO
 
 ## Holds objects that maintain a fixed position regardless of the floating origin
 @export var stationary_nodes: Array[Node3D]
@@ -46,7 +46,6 @@ var center_reference_body_button: Callable = center_reference_body
 func _ready() -> void:
 	if virtual_origin and virtual_origin in stationary_nodes:
 		stationary_nodes.erase(virtual_origin)
-		
 	# WorldOriginController is in charge of all forces to maintain relative velocities and positions
 	for node in get_children():
 		if node is AstroBody or node is AstroRigidBody:
@@ -73,9 +72,9 @@ func _physics_process(delta: float) -> void:
 	
 	if virtual_origin:
 		virtual_origin.global_position += virtual_reference_velocity*delta
-	for node in stationary_nodes:
-		if node != null:
-			node.global_position += virtual_reference_velocity*delta
+	#for node in stationary_nodes:
+		#if node != null:
+			#node.global_position += reference_body.linear_velocity*delta
 
 
 
@@ -141,16 +140,12 @@ func apply_controlled_shift(target: PhysicsBody3D, position_delta: Vector3):
 		for node in get_children():
 			if node == reference_body or (node is not AstroBody and node is not RigidBody3D): continue
 			if node is AstroBody:
-				node.sync_to_physics = false
-				node.global_position -= position_delta
-				node.sync_to_physics = true
+				node.shift_position(-position_delta)
 			else:
 				node.global_position -= position_delta
 	else:
 		if target is AstroBody:
-			target.sync_to_physics = false
-			target.global_position += position_delta
-			target.sync_to_physics = true
+			target.shift_position(position_delta)
 		else:
 			target.global_position += position_delta
 
@@ -165,10 +160,8 @@ func center_reference_body():
 	for node in get_children():
 		if node in stationary_nodes: continue
 		#if node == reference_body: continue
-		if node is AstroBody:
-			node.sync_to_physics = false
-			node.global_position -= new_origin
-			node.sync_to_physics = true
+		if node is AstroBody and !Engine.is_editor_hint():
+			node.shift_position(-new_origin)
 		else:
 			node.global_position -= new_origin
 		if node is AstroBody or node is AstroRigidBody:
@@ -177,11 +170,13 @@ func center_reference_body():
 	if reference_body is AstroRigidBody or reference_body is AstroBody:
 		reference_body.linear_velocity = Vector3.ZERO
 	
-	for node in stationary_nodes:
-		if node != null:
-			node.global_position -= new_origin
-			if node.has_method("reset_physics_interpolation"):
-				node.reset_physics_interpolation()
+	virtual_reference_velocity -= relative_velocity
+	
+	#for node in stationary_nodes:
+		#if node != null:
+			#node.global_position -= new_origin
+			#if node.has_method("reset_physics_interpolation"):
+				#node.reset_physics_interpolation()
 	
 	for body in star_system.orbital_bodies:
 		if body.orbit:
@@ -197,14 +192,16 @@ func float_origin():
 	for node in get_children():
 		#if node == reference_body: continue
 		if node is AstroBody:
-			node.sync_to_physics = false
+			node.shift_position(-new_origin)
+		else:
 			node.global_transform.origin -= new_origin
-			node.sync_to_physics = true
-		elif node is AstroRigidBody:
-			var t = node.global_transform
-			t.origin -= new_origin
-			PhysicsServer3D.body_set_state(node.get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, t)
-			#node.global_transform.origin -= new_origin
+	
+	
+	#for node in stationary_nodes:
+		#if node != null:
+			#node.global_position -= new_origin
+			#if node.has_method("reset_physics_interpolation"):
+				#node.reset_physics_interpolation()
 		#if node.has_method("reset_physics_interpolation"):
 			#node.reset_physics_interpolation()
 	#reference_body.global_position = Vector3.ZERO

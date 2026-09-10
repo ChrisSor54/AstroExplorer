@@ -41,6 +41,8 @@ var linear_velocity: Vector3 = Vector3.ZERO
 var _linear_acceleration: Vector3 = Vector3.ZERO
 var _linear_impulse: Vector3 = Vector3.ZERO
 
+var _shift_buffer: Vector3 = Vector3.ZERO
+
 ## The gravitational acceleration experienced by the body this frame
 var _current_gravitational_acceleration: Vector3 = Vector3.ZERO
 
@@ -51,6 +53,7 @@ var angular_velocity: Vector3 = Vector3.ZERO
 		#angular_velocity = val
 		##constant_angular_velocity = val
 
+@export var disable_gravity: bool = false
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -76,7 +79,8 @@ func _process(_delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint(): return
 	_process_forces(delta)
-	var updated_origin = global_position + linear_velocity*delta
+	var updated_origin = global_position + _shift_buffer + linear_velocity*delta
+	_shift_buffer = Vector3.ZERO
 	var updated_basis = global_transform.basis
 	if angular_velocity.length_squared() > 0.0:
 		updated_basis *= Basis(Vector3.UP, angular_velocity.length()*delta).orthonormalized()
@@ -106,6 +110,7 @@ func apply_impulse(impulse_vector: Vector3):
 
 ## Applies a gravitational attraction
 func apply_gravitational_force(source_body: PhysicsBody3D, gravity_vector: Vector3):
+	if disable_gravity: return
 	if is_zero_approx(mass): return
 	force_applied.emit(self, gravity_vector)
 	_current_gravitational_acceleration += gravity_vector/mass
@@ -160,3 +165,18 @@ func get_gravity_from(target_position: Vector3, target_mass: float = 1.0, target
 		var distance = normal.length()
 		gravity_vector = normal.normalized()*((G*mass*target_mass*distance)/(target_radius*target_radius*target_radius))
 	return gravity_vector
+
+
+## Move an Astrobody while handling the annoying physics shennanigans
+func shift_position(position_delta: Vector3):
+	if sync_to_physics:
+		#sync_to_physics = false
+		#var t = global_transform
+		#t.origin += position_delta
+		#global_transform = t
+		#PhysicsServer3D.body_set_state(get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, t)
+		##global_position += position_delta
+		#sync_to_physics = true
+		_shift_buffer += position_delta
+	else:
+		global_position += position_delta
