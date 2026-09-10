@@ -56,6 +56,7 @@ func _ready() -> void:
 				node.connect("impulse_applied", apply_controlled_impulse)
 			if !node.is_connected("position_shifted", apply_controlled_shift):
 				node.connect("position_shifted", apply_controlled_shift)
+			node.top_level = true
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -64,8 +65,12 @@ func _process(_delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint(): return
+	if Input.is_action_just_pressed("debug"):
+		if reference_body:
+			reference_body.global_position += Vector3.UP*20
 	if origin_shifting:
 		float_origin()
+	
 	if virtual_origin:
 		virtual_origin.global_position += virtual_reference_velocity*delta
 	for node in stationary_nodes:
@@ -97,6 +102,8 @@ func integrate_force(state: PhysicsDirectBodyState3D):
 	if angle > 0.0001:
 		var axis = state.angular_velocity / angle
 		state.transform.basis = state.transform.basis.rotated(axis, angle * state.step)
+	#if origin_shifting:
+		#float_origin(state)
 	#float_origin(state)
 
 func on_physics_processed(_emitter: PhysicsBody3D):
@@ -188,15 +195,18 @@ func float_origin():
 	var new_origin = reference_body.global_position
 
 	for node in get_children():
-		if node == reference_body: continue
+		#if node == reference_body: continue
 		if node is AstroBody:
 			node.sync_to_physics = false
 			node.global_transform.origin -= new_origin
 			node.sync_to_physics = true
-		else:
-			node.global_transform.origin -= new_origin
-		if node.has_method("reset_physics_interpolation"):
-			node.reset_physics_interpolation()
-	reference_body.global_position = Vector3.ZERO
-	if reference_body.has_method("reset_physics_interpolation"):
-		reference_body.reset_physics_interpolation()
+		elif node is AstroRigidBody:
+			var t = node.global_transform
+			t.origin -= new_origin
+			PhysicsServer3D.body_set_state(node.get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, t)
+			#node.global_transform.origin -= new_origin
+		#if node.has_method("reset_physics_interpolation"):
+			#node.reset_physics_interpolation()
+	#reference_body.global_position = Vector3.ZERO
+	#if reference_body.has_method("reset_physics_interpolation"):
+		#reference_body.reset_physics_interpolation()

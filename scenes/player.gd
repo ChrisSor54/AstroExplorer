@@ -140,10 +140,11 @@ func _physics_process(delta: float) -> void:
 		#angular_velocity = Vector3.ZERO
 		#lock_rotation = true
 		_process_orientation(delta)
+		_process_movement(delta)
 	else:
 		lock_rotation = false
 		_is_stuck_to_surface = false
-	_process_movement(delta)
+	
 	super._physics_process(delta)
 
 
@@ -218,9 +219,9 @@ func _process_movement(delta: float) -> void:
 			var relative_speed = surface_relative_velocity.length()
 			var deceleration_speed = clampf(walk_acceleration, relative_speed/10, relative_speed)
 			move_vector -= (surface_relative_velocity.normalized()-input_vector)*deceleration_speed*mass/delta
-			if relative_velocity.dot(up_vector) < 0:
-				#force_applied.emit(self, -parent_gravity)
-				move_vector -= parent_gravity
+			#if relative_velocity.dot(up_vector) < 0:
+				##force_applied.emit(self, -parent_gravity)
+				#move_vector -= parent_gravity
 		
 		#if relative_velocity.length() != 0: print(relative_velocity.length())
 	else:
