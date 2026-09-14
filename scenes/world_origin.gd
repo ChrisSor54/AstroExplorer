@@ -26,14 +26,14 @@ var center_reference_body_button: Callable = center_reference_body
 func _ready() -> void:
 	# WorldOriginController is in charge of all forces to maintain relative velocities and positions
 	for node in get_children():
-		if node is AstroBody or node is AstroRigidBody:
-			if !node.is_connected("force_applied", apply_controlled_force):
-				node.connect("force_applied", apply_controlled_force)
-			if !node.is_connected("impulse_applied", apply_controlled_impulse):
-				node.connect("impulse_applied", apply_controlled_impulse)
+		#if node is AstroBody or node is AstroRigidBody:
+			#if !node.is_connected("force_applied", apply_controlled_force):
+				#node.connect("force_applied", apply_controlled_force)
+			#if !node.is_connected("impulse_applied", apply_controlled_impulse):
+				#node.connect("impulse_applied", apply_controlled_impulse)
 			#if !node.is_connected("position_shifted", apply_controlled_shift):
 				#node.connect("position_shifted", apply_controlled_shift)
-			node.top_level = true
+		node.top_level = true
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.

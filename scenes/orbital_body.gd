@@ -421,10 +421,10 @@ func redraw_orbital_visualizations():
 			orbital_line_visualization.visible = false
 			return
 		orbital_line_visualization.visible = true
-		var r = 0.0
+		#var r = 0.0
 		#if orbit.relative_to_barycenter:
 			#r = orbit.get_barycenter_distance_scalar(mass, parent_body.mass)
-		var orbital_path = orbit.get_orbital_path(360, r)
+		var orbital_path = orbit.get_orbital_path(360)
 		orbital_line_visualization.mesh = generate_orbital_path_mesh(orbital_path)
 		#var normal = (global_position - parent_body.global_position).normalized()
 		var focus = parent_body.global_position

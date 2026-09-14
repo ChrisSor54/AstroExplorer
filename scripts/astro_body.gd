@@ -12,11 +12,6 @@ var _current_strongest_tidal_force: Vector3 = Vector3.ZERO
 
 signal physics_processed(emitter: AstroBody)
 
-# WorldOriginController is in charge of handling all forces and positional movements to maintain relative positions and velocities
-signal force_applied(emitter: PhysicsBody3D, force: Vector3, offset: Vector3)
-signal impulse_applied(emitter: PhysicsBody3D, impulse: Vector3, offset: Vector3)
-signal position_shifted(emitter: PhysicsBody3D, position_delta: Vector3)
-
 @export
 var enabled: bool = true:
 	set(val):
@@ -112,7 +107,7 @@ func apply_impulse(impulse_vector: Vector3):
 func apply_gravitational_force(source_body: PhysicsBody3D, gravity_vector: Vector3):
 	if disable_gravity: return
 	if is_zero_approx(mass): return
-	force_applied.emit(self, gravity_vector)
+	apply_force(gravity_vector)
 	_current_gravitational_acceleration += gravity_vector/mass
 	if gravity_vector.length_squared() > _current_strongest_gravity.length_squared():
 		_current_strongest_gravity = gravity_vector

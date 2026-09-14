@@ -56,6 +56,7 @@ var _is_map_open: bool = false
 
 
 signal map_opened(is_open: bool, target_position: Vector3, camera_distance: float)
+signal map_camera_moved(move_vector: Vector3, rotate_vector: Vector3, zoom_value: float)
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -107,7 +108,7 @@ func _physics_process(delta: float) -> void:
 		var up_vector = (global_position-_ground.global_position).normalized()
 		if in_artificial_gravity:
 			up_vector = -get_gravity().normalized()
-		print(rad_to_deg(ground_raycast.get_collision_normal().angle_to(up_vector)))
+		#print(rad_to_deg(ground_raycast.get_collision_normal().angle_to(up_vector)))
 		if ground_raycast.get_collision_normal().angle_to(up_vector) <= deg_to_rad(45):
 			var relative_velocity = linear_velocity - _ground.linear_velocity
 			if relative_velocity.dot(up_vector) <= 0.2:
@@ -126,7 +127,10 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("ragdoll"):
 		is_ragdoll = !is_ragdoll
 	
-	_process_look_input(delta)
+	if _is_map_open:
+		_process_map_controls(delta)
+	else:
+		_process_look_input(delta)
 	_process_orientation(delta)
 	if !is_ragdoll:
 		lock_rotation = true
@@ -137,7 +141,8 @@ func _physics_process(delta: float) -> void:
 		#angular_velocity = angular_velocity.project(forward_vector) + angular_velocity.project(left_vector)
 		#angular_velocity = Vector3.ZERO
 		#lock_rotation = true
-		_process_movement(delta)
+		if !_is_map_open:
+			_process_movement(delta)
 	else:
 		lock_rotation = false
 		_is_stuck_to_surface = false
@@ -183,8 +188,8 @@ func _process_movement(delta: float) -> void:
 		var is_jumping = Input.is_action_just_pressed("jump")
 		if is_jumping:
 			var impulse_vector = jump_strength*up_vector*mass
-			impulse_applied.emit(self, impulse_vector)
-			impulse_applied.emit(_ground, -impulse_vector)
+			apply_impulse(impulse_vector)
+			_ground.apply_impulse(-impulse_vector)
 			_is_stuck_to_surface = false
 			is_grounded = false
 		
@@ -214,7 +219,7 @@ func _process_movement(delta: float) -> void:
 					else:
 						_is_stuck_to_surface = true
 						_surface_position = _ground.to_local(global_position)
-					impulse_applied.emit(self, -relative_velocity*mass)
+					apply_impulse(-relative_velocity*mass)
 			else:
 				_is_stuck_to_surface = false
 		if !is_jumping and !_is_stuck_to_surface:
@@ -230,7 +235,7 @@ func _process_movement(delta: float) -> void:
 		if input_vector != Vector3.ZERO:
 			move_vector = input_vector*thrust_strength*mass
 	if move_vector != Vector3.ZERO:
-		force_applied.emit(self, move_vector)
+		apply_force(move_vector)
 	if rotation_axis != 0:
 		global_rotate(forward_vector, rotation_axis*thrust_strength*delta*delta)
 
@@ -280,7 +285,7 @@ func _process_orientation(delta: float) -> void:
 		var artificial_gravity = get_gravity()
 		if artificial_gravity != Vector3.ZERO:
 			up_vector = -artificial_gravity.normalized()
-		var angle_offset = set_orientation_to(up_vector, lerp_speed*delta, 0.002, _lock_relative_camera_rotation)
+		var angle_offset = orient_to(up_vector, 6.0*delta, _lock_relative_camera_rotation)
 		if _is_reorienting and angle_offset <= 0.02:
 			_is_reorienting = false
 	else:
@@ -298,6 +303,26 @@ func _process_orientation(delta: float) -> void:
 		var new_quat = rotation_delta * global_transform.basis.get_rotation_quaternion()
 		global_transform.basis = Basis(new_quat)
 
+
+func _process_map_controls(delta):
+	var move_vector = Vector3.ZERO
+	var rotate_vector = Vector3.ZERO
+	move_vector += Input.get_axis("backward", "forward") * Vector3.FORWARD
+	move_vector += Input.get_axis("right", "left") * Vector3.LEFT
+	move_vector += Input.get_axis("fly_down", "fly_up") * Vector3.UP
+	var zoom = 0.0
+	if Input.is_action_just_pressed("zoom_in"):
+		zoom += 1.0
+	if Input.is_action_just_pressed("zoom_out"):
+		zoom -= 1.0
+	if _mouselook_enabled:
+		#if !in_zero_G:
+		rotate_vector = Vector3(_mouse_delta.x, _mouse_delta.y , 0.0)*_mouse_sensitivity
+		#global_rotate(up_vector, _mouse_delta.x*_mouse_sensitivity)
+	if move_vector != Vector3.ZERO:
+		move_vector = move_vector.normalized()
+	map_camera_moved.emit(move_vector*delta, rotate_vector, zoom*delta)
+	_mouse_delta = Vector2.ZERO
 
 func get_overlap_with_ground():
 	if _ground == null:
@@ -318,8 +343,27 @@ func get_orientation_quat_for(target_orientation: Vector3, lerp_speed: float = 1
 	var new_quat = current_quat.slerp(target_quat, clampf(lerp_speed, 0.0, 1.0))
 	return new_quat
 
-## Sets the player's orientation so that their upwards direction is pointed in the provided orientation. Returns the current angle offset to the provided orientation
-func set_orientation_to(target_orientation: Vector3, lerp_speed: float = 1.0, angle_snap_threshold: float = 0.0, preserve_camera_orientation: bool = false) -> float:
+
+func orient_to(target_orientation: Vector3, orient_speed: float = 1.0, preserve_camera_orientation: bool = false) -> float:
+	var current_quat = global_transform.basis.get_rotation_quaternion()
+	var target_quat = get_orientation_quat_for(target_orientation)
+	var angle_offset = current_quat.angle_to(target_quat)
+	var new_quat = current_quat.slerp(target_quat, clampf(orient_speed/angle_offset, 0.0, 1.0))
+	var new_basis = Basis(new_quat)
+	#var new_transform = Transform3D(new_basis, )
+	global_transform.basis = new_basis
+	if preserve_camera_orientation:
+		#var angle_delta = current_quat.angle_to(new_quat)
+		var camera_right_axis = camera_pivot.global_transform.basis.x
+		var old_forward = current_quat * Vector3.FORWARD
+		var new_forward = new_quat * Vector3.FORWARD
+		var pitch_delta = old_forward.signed_angle_to(new_forward, camera_right_axis)
+		camera_pivot.rotation.x -= pitch_delta
+	var remaining_angle_offset = new_quat.angle_to(target_quat)
+	return remaining_angle_offset
+
+
+func lerp_orientation_to(target_orientation: Vector3, lerp_speed: float = 1.0, angle_snap_threshold: float = 0.0, preserve_camera_orientation: bool = false) -> float:
 	var current_quat = global_transform.basis.get_rotation_quaternion()
 	var target_quat = get_orientation_quat_for(target_orientation)
 	var angle_offset = current_quat.angle_to(target_quat)
@@ -340,10 +384,32 @@ func set_orientation_to(target_orientation: Vector3, lerp_speed: float = 1.0, an
 	return remaining_angle_offset
 
 
+## Sets the player's orientation so that their upwards direction is pointed in the provided orientation. Returns the current angle offset to the provided orientation
+#func set_orientation_to(target_orientation: Vector3, lerp_speed: float = 1.0, angle_snap_threshold: float = 0.0, preserve_camera_orientation: bool = false) -> float:
+	#var current_quat = global_transform.basis.get_rotation_quaternion()
+	#var target_quat = get_orientation_quat_for(target_orientation)
+	#var angle_offset = current_quat.angle_to(target_quat)
+	#if angle_offset <= angle_snap_threshold:
+		#lerp_speed = 1.0
+	#var new_quat = current_quat.slerp(target_quat, clampf(lerp_speed, 0.0, 1.0))
+	#var new_basis = Basis(new_quat)
+	##var new_transform = Transform3D(new_basis, )
+	#global_transform.basis = new_basis
+	#if preserve_camera_orientation:
+		##var angle_delta = current_quat.angle_to(new_quat)
+		#var camera_right_axis = camera_pivot.global_transform.basis.x
+		#var old_forward = current_quat * Vector3.FORWARD
+		#var new_forward = new_quat * Vector3.FORWARD
+		#var pitch_delta = old_forward.signed_angle_to(new_forward, camera_right_axis)
+		#camera_pivot.rotation.x -= pitch_delta
+	#var remaining_angle_offset = new_quat.angle_to(target_quat)
+	#return remaining_angle_offset
+
+
 func update_spawn_point():
 	if spawn_point and is_inside_tree() and spawn_point.is_inside_tree() and spawn_point.get_parent().is_inside_tree():
 		var home_planet: OrbitalBody = spawn_point.get_parent()
 		if spawn_point.global_position == home_planet.global_position: return
 		var up_vector = (global_position - home_planet.global_position).normalized()
-		set_orientation_to(up_vector)
+		lerp_orientation_to(up_vector)
 		linear_velocity = home_planet.linear_velocity + home_planet.get_surface_velocity_from(spawn_point.global_position)

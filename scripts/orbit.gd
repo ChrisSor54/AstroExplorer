@@ -162,18 +162,13 @@ func get_orbital_velocity_at_true_anomaly(ta: float, gravitational_parameter: fl
 	return Vector3(x, y, z)
 
 
-func get_orbital_path(vertices: int = 360, focal_distance_scalar: float = 0.0, parent_path: bool = false):
-	focal_distance_scalar = clampf(focal_distance_scalar, 0.0, 1.0)
-	if parent_path:
-		focal_distance_scalar = 1 - focal_distance_scalar
+func get_orbital_path(vertices: int = 360, reference_point: Vector3 = Vector3.ZERO):
 	var path: PackedVector3Array = []
 	var f_vertices: float = vertices
 	var point_delta = 360.0/f_vertices
 	var point = 0
 	while point < 360:
-		var orbital_position = get_position_at_true_anomaly(deg_to_rad(point), focal_distance_scalar)
-		if parent_path:
-			orbital_position *= -1.0
+		var orbital_position = get_position_at_true_anomaly(deg_to_rad(point)) - reference_point
 		path.append(orbital_position)
 		point += point_delta
 	path.append(path[0])

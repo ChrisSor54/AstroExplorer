@@ -15,9 +15,6 @@ var _shift_buffer: Vector3 = Vector3.ZERO
 #var _surface_position: Vector3 = Vector3.ZERO
 
 
-signal force_applied(emitter: PhysicsBody3D, force: Vector3, offset: Vector3)
-signal impulse_applied(emitter: PhysicsBody3D, impulse: Vector3, offset: Vector3)
-signal position_shifted(emitter: PhysicsBody3D, position_delta: Vector3)
 signal integrated_forces(emitter: PhysicsBody3D, state: PhysicsDirectBodyState3D)
 signal physics_processed(emitter: PhysicsBody3D)
 
@@ -51,7 +48,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 func apply_gravitational_force(source_body: PhysicsBody3D, gravity_vector: Vector3):
 	if disable_gravity: return
 	if get_gravity() == Vector3.ZERO: # Don't apply normal gravity when in a gravity field
-		force_applied.emit(self, gravity_vector)
+		apply_force(gravity_vector)
 		_current_gravity += gravity_vector
 	var distance = global_position.distance_to(source_body.global_position)
 	if source_body is AstroBody:
