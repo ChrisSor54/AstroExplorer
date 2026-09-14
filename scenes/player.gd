@@ -92,7 +92,7 @@ func _process(_delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	_ground = ground_raycast.get_collider()
-	if (_current_strongest_tidal_force/mass).length() >= ZERO_G_THRESHOLD:
+	if (_current_strongest_tidal_force/mass).length() >= ZERO_G_THRESHOLD or get_gravity() != Vector3.ZERO:
 		if in_zero_G:
 			_is_reorienting = true
 		in_zero_G = false
@@ -123,22 +123,8 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("ragdoll"):
 		is_ragdoll = !is_ragdoll
 	
-	if !_ignore_spin:
-		if is_grounded:
-			var up_vector = (global_position - _ground.global_position).normalized()
-			if in_artificial_gravity:
-				up_vector = -get_gravity().normalized()
-			global_rotate(up_vector, _ground.angular_velocity.dot(up_vector)*delta)
-		elif is_ragdoll:
-			var colliding_bodies = get_colliding_bodies()
-			if !colliding_bodies.is_empty() and colliding_bodies[0] is AstroBody:
-				var up_vector = (global_position - colliding_bodies[0].global_position).normalized()
-				if in_artificial_gravity:
-					up_vector = -get_gravity().normalized()
-				global_rotate(up_vector, colliding_bodies[0].angular_velocity.dot(up_vector)*delta)
-				
-	
 	_process_look_input(delta)
+	_process_orientation(delta)
 	if !is_ragdoll:
 		lock_rotation = true
 		angular_velocity = Vector3.ZERO
@@ -148,7 +134,6 @@ func _physics_process(delta: float) -> void:
 		#angular_velocity = angular_velocity.project(forward_vector) + angular_velocity.project(left_vector)
 		#angular_velocity = Vector3.ZERO
 		#lock_rotation = true
-		_process_orientation(delta)
 		_process_movement(delta)
 	else:
 		lock_rotation = false
@@ -264,6 +249,21 @@ func _process_look_input(_delta: float) -> void:
 
 
 func _process_orientation(delta: float) -> void:
+	if !_ignore_spin:
+		if is_grounded:
+			var up_vector = (global_position - _ground.global_position).normalized()
+			if in_artificial_gravity:
+				up_vector = -get_gravity().normalized()
+			global_rotate(up_vector, _ground.angular_velocity.dot(up_vector)*delta)
+		elif is_ragdoll:
+			var colliding_bodies = get_colliding_bodies()
+			if !colliding_bodies.is_empty() and colliding_bodies[0] is AstroBody:
+				var up_vector = (global_position - colliding_bodies[0].global_position).normalized()
+				if in_artificial_gravity:
+					up_vector = -get_gravity().normalized()
+					print("test")
+				global_rotate(up_vector, colliding_bodies[0].angular_velocity.dot(up_vector)*delta)
+	if is_ragdoll: return
 	var lerp_speed = 6.0
 	_lock_relative_camera_rotation = _is_reorienting
 	if camera_pivot.rotation.y != 0.0:
@@ -317,12 +317,12 @@ func get_orientation_quat_for(target_orientation: Vector3, lerp_speed: float = 1
 	return new_quat
 
 ## Sets the player's orientation so that their upwards direction is pointed in the provided orientation. Returns the current angle offset to the provided orientation
-func set_orientation_to(target_orientation: Vector3, lerp_speed: float = 1.0, angle_snap_threshold: float = 0.0, preserve_camera_orientation: bool = false) -> float:
+func set_orientation_to(target_orientation: Vector3, lerp_speed: float = 1.0, _angle_snap_threshold: float = 0.0, preserve_camera_orientation: bool = false) -> float:
 	var current_quat = global_transform.basis.get_rotation_quaternion()
 	var target_quat = get_orientation_quat_for(target_orientation)
-	var angle_offset = current_quat.angle_to(target_quat)
-	if angle_offset <= angle_snap_threshold:
-		lerp_speed = 1.0
+	#var angle_offset = current_quat.angle_to(target_quat)
+	#if angle_offset <= angle_snap_threshold:
+		#lerp_speed /= angle_offset
 	var new_quat = current_quat.slerp(target_quat, clampf(lerp_speed, 0.0, 1.0))
 	var new_basis = Basis(new_quat)
 	#var new_transform = Transform3D(new_basis, )

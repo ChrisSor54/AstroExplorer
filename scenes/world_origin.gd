@@ -55,7 +55,7 @@ func _physics_process(delta: float) -> void:
 			if reference_body.in_zero_G:
 				change_velocity_reference_frame(reference_body.linear_velocity)
 				float_origin(reference_body.global_position)
-			else:
+			elif reference_body.parent_body:
 				change_velocity_reference_frame(reference_body.parent_body.linear_velocity)
 	
 	if virtual_origin:
@@ -91,6 +91,7 @@ func apply_controlled_impulse(target: PhysicsBody3D, impulse: Vector3, _offset: 
 	else:
 		target.apply_impulse(impulse)
 
+
 func change_velocity_reference_frame(new_reference_velocity: Vector3):
 	for node in get_children():
 		#if node == reference_body: continue
@@ -98,6 +99,7 @@ func change_velocity_reference_frame(new_reference_velocity: Vector3):
 			#node.shift_position(-new_origin)
 			node.apply_impulse(-new_reference_velocity*node.mass)
 	virtual_reference_velocity -= new_reference_velocity
+
 
 func center_reference_body():
 	if !reference_body: return
