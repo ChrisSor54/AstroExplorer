@@ -52,6 +52,7 @@ var initial_linear_velocity: Vector3 = Vector3.ZERO
 
 var _initial_velocity_applied: bool = false
 
+@export var reorient_player: bool = true
 
 #@export_custom(PROPERTY_HINT_NONE, "radians_as_degrees,suffix:°/s") var angular_velocity: Vector3 = Vector3.ZERO
 
@@ -220,13 +221,13 @@ func calculate_new_orbit():
 #@export_category("")
 
 
-func update_orbit():
-	if !Engine.is_editor_hint():
+func update_orbit(force: bool = false):
+	if !Engine.is_editor_hint() and !force:
 		redraw_orbital_visualizations()
 		return
 	if !enabled: return
 	if orbit != null:
-		if parent_body == null or !parent_body.is_inside_tree():
+		if parent_body == null or !parent_body.enabled or !parent_body.is_inside_tree():
 			linear_velocity = Vector3.ZERO
 			return
 		if Engine.is_editor_hint(): print_debug("Updating orbit for: ", name)

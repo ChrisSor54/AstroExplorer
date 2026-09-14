@@ -8,6 +8,8 @@ var parent_gravity: Vector3 = Vector3.ZERO
 var _current_gravity: Vector3 = Vector3.ZERO
 var _current_strongest_gravity: Vector3 = Vector3.ZERO
 var _current_strongest_tidal_force: Vector3 = Vector3.ZERO
+
+var _shift_buffer: Vector3 = Vector3.ZERO
 #var _ground: PhysicsBody3D = null
 #var _is_stuck_to_surface: bool = false
 #var _surface_position: Vector3 = Vector3.ZERO
@@ -29,7 +31,7 @@ func _on_new_frame():
 	parent_body = null
 	parent_gravity = Vector3.ZERO
 	_current_strongest_gravity = Vector3.ZERO
-	_current_gravity = get_gravity()
+	_current_gravity = get_gravity()*mass
 	_current_strongest_tidal_force = Vector3.ZERO
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -40,13 +42,17 @@ func _physics_process(delta: float) -> void:
 	physics_processed.emit(self)
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
+	state.transform.origin += _shift_buffer
+	#print(_shift_buffer)
+	_shift_buffer = Vector3.ZERO
 	integrated_forces.emit(self, state)
 
 
 func apply_gravitational_force(source_body: PhysicsBody3D, gravity_vector: Vector3):
 	if disable_gravity: return
-	force_applied.emit(self, gravity_vector)
-	_current_gravity += gravity_vector
+	if get_gravity() == Vector3.ZERO: # Don't apply normal gravity when in a gravity field
+		force_applied.emit(self, gravity_vector)
+		_current_gravity += gravity_vector
 	var distance = global_position.distance_to(source_body.global_position)
 	if source_body is AstroBody:
 		if gravity_vector.length_squared() > _current_strongest_gravity.length_squared():

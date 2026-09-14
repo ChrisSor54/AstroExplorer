@@ -49,6 +49,8 @@ func _ready() -> void:
 		elif body is AstroRigidBody:
 			rigidbodies.append(body)
 	validate_orbits()
+	if !Engine.is_editor_hint() and player and player.is_inside_tree():
+		player.update_spawn_point()
 	world_origin_controller.center_reference_body()
 	print_debug("Star System ready")
 	
@@ -152,7 +154,7 @@ func validate_orbits():
 	
 	for body in orbital_bodies:
 		if Engine.is_editor_hint(): print_debug(body.name, ": Validating")
-		body.update_orbit()
+		body.update_orbit(true)
 	
 	if player and player.spawn_point:
 		var spawn_point: Marker3D = player.spawn_point

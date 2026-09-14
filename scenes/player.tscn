@@ -29,12 +29,13 @@ margin = 0.02
 radius = 0.4
 
 [node name="Player" type="RigidBody3D" unique_id=1916186712 node_paths=PackedStringArray("collision_shape", "ground_raycast", "camera_pivot", "camera")]
-mass = 7.0
+mass = 70.0
 physics_material_override = SubResource("PhysicsMaterial_choun")
 can_sleep = false
 lock_rotation = true
 freeze_mode = 1
 continuous_cd = true
+contact_monitor = true
 max_contacts_reported = 1
 script = ExtResource("1_3vyb7")
 collision_shape = NodePath("CollisionShape")
