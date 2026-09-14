@@ -107,14 +107,17 @@ func _physics_process(delta: float) -> void:
 		var up_vector = (global_position-_ground.global_position).normalized()
 		if in_artificial_gravity:
 			up_vector = -get_gravity().normalized()
-		var relative_velocity = linear_velocity - _ground.linear_velocity
-		print(_ground.name)
-		if relative_velocity.dot(up_vector) <= 0.2:
-		##global_position += (ground_raycast.global_position - ground_raycast.get_collision_point())
-			is_grounded = true
+		print(rad_to_deg(ground_raycast.get_collision_normal().angle_to(up_vector)))
+		if ground_raycast.get_collision_normal().angle_to(up_vector) <= deg_to_rad(45):
+			var relative_velocity = linear_velocity - _ground.linear_velocity
+			if relative_velocity.dot(up_vector) <= 0.2:
+			##global_position += (ground_raycast.global_position - ground_raycast.get_collision_point())
+				is_grounded = true
+			else:
+				is_grounded = false
 		else:
 			is_grounded = false
-		#is_grounded = true
+			#is_grounded = true
 	else:
 		#if is_grounded:
 			#_is_reorienting = true
@@ -261,7 +264,6 @@ func _process_orientation(delta: float) -> void:
 				var up_vector = (global_position - colliding_bodies[0].global_position).normalized()
 				if in_artificial_gravity:
 					up_vector = -get_gravity().normalized()
-					print("test")
 				global_rotate(up_vector, colliding_bodies[0].angular_velocity.dot(up_vector)*delta)
 	if is_ragdoll: return
 	var lerp_speed = 6.0
@@ -278,7 +280,7 @@ func _process_orientation(delta: float) -> void:
 		var artificial_gravity = get_gravity()
 		if artificial_gravity != Vector3.ZERO:
 			up_vector = -artificial_gravity.normalized()
-		var angle_offset = set_orientation_to(up_vector, lerp_speed*delta, 0.02, _lock_relative_camera_rotation)
+		var angle_offset = set_orientation_to(up_vector, lerp_speed*delta, 0.002, _lock_relative_camera_rotation)
 		if _is_reorienting and angle_offset <= 0.02:
 			_is_reorienting = false
 	else:
@@ -317,12 +319,12 @@ func get_orientation_quat_for(target_orientation: Vector3, lerp_speed: float = 1
 	return new_quat
 
 ## Sets the player's orientation so that their upwards direction is pointed in the provided orientation. Returns the current angle offset to the provided orientation
-func set_orientation_to(target_orientation: Vector3, lerp_speed: float = 1.0, _angle_snap_threshold: float = 0.0, preserve_camera_orientation: bool = false) -> float:
+func set_orientation_to(target_orientation: Vector3, lerp_speed: float = 1.0, angle_snap_threshold: float = 0.0, preserve_camera_orientation: bool = false) -> float:
 	var current_quat = global_transform.basis.get_rotation_quaternion()
 	var target_quat = get_orientation_quat_for(target_orientation)
-	#var angle_offset = current_quat.angle_to(target_quat)
-	#if angle_offset <= angle_snap_threshold:
-		#lerp_speed /= angle_offset
+	var angle_offset = current_quat.angle_to(target_quat)
+	if angle_offset <= angle_snap_threshold:
+		lerp_speed = 1.0
 	var new_quat = current_quat.slerp(target_quat, clampf(lerp_speed, 0.0, 1.0))
 	var new_basis = Basis(new_quat)
 	#var new_transform = Transform3D(new_basis, )
