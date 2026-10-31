@@ -1,5 +1,5 @@
 Screenshots of the project
-<img width="1920" height="1080" alt="Screenshot (209)" src="https://github.com/user-attachments/assets/4d8aa110-675c-4433-8d90-da94cfce6bd5" />
-<img width="1920" height="1080" alt="Screenshot (210)" src="https://github.com/user-attachments/assets/cd85dcaa-3d36-47a0-979d-3f847edb26a7" />
+<img width="1824" height="1008" alt="AstroExplorerEarth" src="https://github.com/user-attachments/assets/d6b2593e-b306-40c6-b300-773ebdc15837" />
+<img width="1255" height="681" alt="AstroExplorerMoon" src="https://github.com/user-attachments/assets/75a9299a-51cb-4d1c-89bb-0f714c97b251" />
 
 
