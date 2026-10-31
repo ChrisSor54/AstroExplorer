@@ -28,6 +28,9 @@ height = 1.3227539
 margin = 0.02
 radius = 0.4
 
+[sub_resource type="LabelSettings" id="LabelSettings_qhqgy"]
+font_size = 32
+
 [node name="Player" type="RigidBody3D" unique_id=1916186712 node_paths=PackedStringArray("collision_shape", "ground_raycast", "camera_pivot", "camera")]
 mass = 70.0
 physics_material_override = SubResource("PhysicsMaterial_choun")
@@ -100,31 +103,20 @@ spot_range = 100.0
 spot_attenuation = 0.0
 spot_angle = 16.45044
 
-[node name="HUD" type="CanvasLayer" parent="." unique_id=1181960250 node_paths=PackedStringArray("control", "gravity_label", "debug_label", "debug_label2")]
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1181960250 node_paths=PackedStringArray("control")]
 script = ExtResource("3_qhqgy")
 control = NodePath("Control")
-gravity_label = NodePath("Control/GravityLabel")
-debug_label = NodePath("Control/DebugLabel")
-debug_label2 = NodePath("Control/DebugLabel2")
 
 [node name="Control" type="Control" parent="HUD" unique_id=2042244301]
 layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+anchors_preset = 0
+offset_right = 472.0
+offset_bottom = 189.0
 grow_horizontal = 2
 grow_vertical = 2
-
-[node name="GravityLabel" type="Label" parent="HUD/Control" unique_id=1459067998]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-vertical_alignment = 2
 
 [node name="DebugLabel" type="Label" parent="HUD/Control" unique_id=1412820774]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -135,9 +127,25 @@ horizontal_alignment = 2
 vertical_alignment = 2
 
 [node name="DebugLabel2" type="Label" parent="HUD/Control" unique_id=1187393682]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="HUD/Control" unique_id=1047169553]
+layout_mode = 0
+offset_right = 472.0
+offset_bottom = 189.0
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+
+[node name="Controls" type="Label" parent="HUD/Control/MarginContainer" unique_id=1459067998]
+layout_mode = 2
+text = "Move with WASD
+Jump with Spacebar
+Open Map with M
+Press Escape to unlock  mouse"
+label_settings = SubResource("LabelSettings_qhqgy")

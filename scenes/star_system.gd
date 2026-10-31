@@ -79,12 +79,12 @@ func _ready() -> void:
 					var target_node = world_origin_controller.virtual_origin
 					var max_points = 0
 					if orbital_body.orbit and orbital_body.parent_body:
-						target_node = orbital_body.parent_body
+						target_node = orbital_body
 						for i in range(traversed_points_depth):
 							if target_node.orbit and target_node.parent_body:
 								var orbital_period = target_node.orbit.get_orbital_period(target_node.parent_body.mass*G)
 								var num_points = int(orbital_period/traversed_points_interval)
-								max_points += num_points
+								max_points = num_points
 								target_node = target_node.parent_body
 							else:
 								break
